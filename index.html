@@ -59,7 +59,7 @@ input::placeholder,textarea::placeholder{color:#4b5670}
 .bar{position:relative;height:8px;border-radius:4px;background:rgba(255,255,255,0.07);overflow:hidden}
 .bar>div{position:absolute;top:0;bottom:0}
 .strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
-.strip button{flex:0 0 44px;padding:6px 0;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,0.03);color:var(--text);display:flex;flex-direction:column;align-items:center;gap:2px}
+.strip button{position:relative;flex:0 0 44px;padding:6px 0;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,0.03);color:var(--text);display:flex;flex-direction:column;align-items:center;gap:2px}
 .warn{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:14px;font-size:13px;line-height:19px;border:1px solid}
 .warn b{font-size:11px;letter-spacing:.12em}
 .stepn{width:30px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:rgba(255,255,255,0.05);border:1px solid var(--line);flex:0 0 auto}
@@ -220,17 +220,17 @@ function fmt(n){return Math.round(n).toLocaleString("en-US");}
 function num(s){var v=parseFloat(s);return isNaN(v)?0:v;}
 function has(v){return v!==undefined&&v!==null;}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-var TZ="America/Chicago",_fD=null,_fT=null;
+var TZ="America/Chicago",_fD=null,_fT=null,CLOCK_SRC="Intl";
 function _fmt(){if(_fD)return;try{_fD=new Intl.DateTimeFormat("en-US",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"});_fT=new Intl.DateTimeFormat("en-US",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false});}catch(e){_fD=_fT=false;}}
 function _parts(f,d){var o={};f.formatToParts(d).forEach(function(p){o[p.type]=p.value;});return o;}
 // fallback only: US Central rule (CDT from 2nd Sun Mar 2 AM to 1st Sun Nov 2 AM)
 function _ruleCT(ms){var d=new Date(ms),y=d.getUTCFullYear();var nth=function(mo,n){var x=new Date(Date.UTC(y,mo,1));var off=(7-x.getUTCDay())%7;return Date.UTC(y,mo,1+off+7*(n-1));};
   var dstStart=nth(2,2)+8*3600000,dstEnd=nth(10,1)+7*3600000,off=(ms>=dstStart&&ms<dstEnd)?-5:-6;var c=new Date(ms+off*3600000);
   return {iso:c.toISOString().slice(0,10),h:c.getUTCHours(),m:c.getUTCMinutes()};}
-function ctAt(ms){_fmt();var r=null;
+function ctAt(ms){ms=+ms;if(!isFinite(ms)||Math.abs(ms)>8e15)ms=Date.now();_fmt();var r=null;
   if(_fD){try{var a=_parts(_fD,new Date(ms)),b=_parts(_fT,new Date(ms)),iso=a.year+"-"+a.month+"-"+a.day,h=parseInt(b.hour,10)%24,m=parseInt(b.minute,10);
     if(/^\d{4}-\d{2}-\d{2}$/.test(iso)&&h>=0&&h<24&&m>=0&&m<60)r={iso:iso,h:h,m:m};}catch(e){}}
-  return r||_ruleCT(ms);}
+  if(r)CLOCK_SRC="Intl";else CLOCK_SRC="built-in rule (Intl unavailable)";return r||_ruleCT(ms);}
 function ctDate(ms){return ctAt(ms).iso;}
 function nowCT(){var c=ctAt(Date.now()),h=c.h,m=c.m;return {iso:c.iso,h:h,m:m,mins:h*60+m,hm:(h<10?"0":"")+h+":"+(m<10?"0":"")+m};}
 function hm12(t){if(!t)return "";var p=t.split(":"),h=+p[0];return ((h%12)||12)+":"+p[1]+(h<12?" AM":" PM");}
@@ -269,9 +269,15 @@ function durFb(min,wrLive){
 }
 // ===== storage =====
 var KEY="nalam-dash-v1";
-var DB=(function(){try{var r=localStorage.getItem(KEY);if(r){var d=JSON.parse(r);if(d&&d.days)return d;}}catch(e){}return {v:1,days:{},meta:{}};})();
+var BAK=KEY+".bak-",LOAD={ok:true,err:"",raw:null,fresh:false},REPAIR_ERR="";
+function parseDB(r){var d=JSON.parse(r);if(!d||typeof d!=="object"||!d.days||typeof d.days!=="object"||Array.isArray(d.days))throw new Error("no days in saved data");if(!d.meta||typeof d.meta!=="object")d.meta={};return d;}
+var DB=(function(){var r=null;
+  try{r=localStorage.getItem(KEY);}catch(e){LOAD.ok=false;LOAD.err="This browser blocks storage for this page ("+((e&&e.name)||"error")+"). Nothing can be read or saved here.";return {v:4,days:{},meta:{}};}
+  LOAD.raw=r;if(r===null){LOAD.fresh=true;return {v:4,days:{},meta:{}};}
+  try{return parseDB(r);}catch(e){LOAD.ok=false;LOAD.err="Saved data couldn't be read ("+((e&&e.message)||"parse error")+"). It was left untouched. Open More › Data & recovery.";return {v:4,days:{},meta:{}};}
+})();
 if(!DB.meta)DB.meta={};
-if(!DB.v||DB.v<4){DB.v=4;DB.meta.migratedV4=Date.now();}
+if(LOAD.ok&&(!DB.v||DB.v<4)){DB.v=4;DB.meta.migratedV4=Date.now();}
 var saveOk=true;
 function hasActuals(r){if(!r)return false;var any=function(o){if(!o)return false;for(var k in o)if(o[k])return true;return false;};
   return num(r.weight)>0||num(r.waist)>0||any(r.eaten)||any(r.marks)||(r.extras&&r.extras.length>0)||r.amStatus==="done"||r.pmStatus==="done"||num(r.amMin)>0||num(r.amBurn)>0||num(r.pmBurn)>0||has(r.bedPain)||has(r.walkPain)||has(r.dayPain)||!!(r.notes&&String(r.notes).trim())||any(r.mealTime)||any(r.mealNote);}
@@ -284,8 +290,11 @@ function mergeDay(dst,src){var out={},k,conflict=false;for(k in dst)out[k]=dst[k
     else if(!has(a)||a===""){out[k]=b;}
     else if(has(b)&&b!==""&&a!==b)conflict=true;}
   return {rec:out,conflict:conflict};}
+function bakList(){var out=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(BAK)===0)out.push(k);}}catch(e){}return out.sort();}
+function makeBackup(tag){if(!LOAD.ok)return null;try{var raw=localStorage.getItem(KEY);if(raw===null)return null;var n=new Date(),c=ctAt(n.getTime()),k=BAK+c.iso+"T"+(c.h<10?"0":"")+c.h+"-"+(c.m<10?"0":"")+c.m+"-"+n.getSeconds()+"-"+tag;localStorage.setItem(k,raw);
+  var L=bakList();while(L.length>8){localStorage.removeItem(L.shift());}return k;}catch(e){return null;}}
 function repairKeys(){
-  if(DB.meta.repairV5)return;var today=nowCT().iso,moves=[];
+  if(DB.meta.repairV6)return;if(DB.meta.__failRepair)throw new Error("test failure");var today=nowCT().iso,moves=[];
   Object.keys(DB.days).sort().forEach(function(k){var r=DB.days[k];if(!r||!hasActuals(r))return;var back=addDays(k,-1),ts=num(r.updatedAt)||num(r.createdAt),why=null;
     if(ts>0){if(ctDate(ts)===back)why="saved "+ctDate(ts)+" CT, before "+k+" began";}
     else if(k>today)why="future date with no timestamp";
@@ -295,11 +304,16 @@ function repairKeys(){
     if(!tgt||!hasActuals(tgt)){DB.days[back]=tgt?mergeDay(r,tgt).rec:r;delete DB.days[k];moves.push({from:k,to:back,how:"moved",why:why});}
     else{var m=mergeDay(tgt,r);DB.days[back]=m.rec;delete DB.days[k];moves.push({from:k,to:back,how:m.conflict?"merged (conflicts kept the "+back+" value; original saved in backup)":"merged",why:why});}
   });
-  DB.meta.repairV5=Date.now();DB.meta.repairLog=moves;if(moves.length)DB.meta.photoMoves=(DB.meta.photoMoves||[]).concat(moves.map(function(x){return {from:x.from,to:x.to};}));
-  try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}
+  DB.meta.repairV6=Date.now();if(moves.length){if(!DB.meta.moved)DB.meta.moved={};moves.forEach(function(x){DB.meta.moved[x.from]=x.to;});DB.meta.pendingSync=(DB.meta.pendingSync||[]).concat(moves.map(function(x){return x.from;}),moves.map(function(x){return x.to;}));DB.meta.repairLog=(DB.meta.repairLog||[]).concat(moves);DB.meta.photoMoves=(DB.meta.photoMoves||[]).concat(moves.map(function(x){return {from:x.from,to:x.to};}));}
+  return moves.length;
 }
-repairKeys();
-function save(){try{DB.meta.savedAt=Date.now();localStorage.setItem(KEY,JSON.stringify(DB));saveOk=true;}catch(e){saveOk=false;}}
+(function safeRepair(){if(!LOAD.ok||LOAD.fresh)return;var snap=JSON.stringify(DB);
+  try{var n=repairKeys();if(n){makeBackup("before-date-fix");save();}}
+  catch(e){try{DB=parseDB(snap);}catch(e2){}REPAIR_ERR="The date fix hit an error and was skipped ("+((e&&e.message)||"error")+"). Your data was not changed.";}
+})();
+// another tab or window saved: reload from storage so a stale copy never overwrites newer data
+window.addEventListener("storage",function(ev){if(ev.key!==KEY||ev.newValue===null)return;try{DB=parseDB(ev.newValue);LOAD.ok=true;LOAD.err="";memo={};if(typeof loadS==="function")loadS();render();}catch(e){}});
+function save(){if(!LOAD.ok){saveOk=false;return;}try{DB.meta.savedAt=Date.now();localStorage.setItem(KEY,JSON.stringify(DB));saveOk=true;}catch(e){saveOk=false;}}
 if(navigator.storage&&navigator.storage.persist){try{navigator.storage.persist();}catch(e){}}
 // ===== settings (personal values live only on this device, or come from a private seed link) =====
 var DEF_S={startWeight:"",goalWeight:"",checkpointWeight:"",bodyFat:[],bodyFatGoal:"",routineLabel:"",remLabel:"",remUntil:"",remMeals:false,raceTitle:"",raceWhere:"",racePickup:"",examLabel:"",examDate:"",numbersNote:"",info:{}};
@@ -331,7 +345,7 @@ function settingsSheet(){
   var h='<div class="sheetbg" id="setsheet" data-a="setclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:8px"><span style="font-weight:800;font-size:17px">Settings</span><button data-a="setclose" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div><div class="dim" style="margin-bottom:10px">Saved on this phone only. Never uploaded.</div><div style="display:flex;flex-direction:column;gap:10px"><label style="display:flex;flex-direction:column;gap:4px"><span class="lbl">Setup code</span><textarea id="u-setupCode" class="inp" data-u="setupCode" rows="3" placeholder="Paste your setup link or code" autocomplete="off" autocapitalize="off" spellcheck="false" style="font-size:14px;line-height:18px">'+esc(U.setupCode)+'</textarea></label><div class="row"><button class="btn" id="applyCode" data-a="applycode"'+(U.setupCode.trim()?'':' disabled')+'>Apply</button>'+(SEED_MSG?'<span id="setmsg" style="font-size:13px;font-weight:600;color:'+(SEED_MSG.indexOf("didn't")<0?K.lime:K.amber)+'">'+esc(SEED_MSG)+'</span>':'')+'</div>';
   SET_FIELDS.forEach(function(f){h+='<label style="display:flex;flex-direction:column;gap:4px"><span class="lbl">'+esc(f[1])+'</span><input id="s-'+f[0]+'" class="inp" data-s="'+f[0]+'" type="'+(f[2]==="date"?"date":"text")+'"'+(f[2]==="num"?' inputmode="decimal"':'')+' value="'+esc(S[f[0]])+'" style="color-scheme:dark"></label>';});
   h+='<div class="row sb"><span class="muted">Force 2 meals while the reminder is on</span>'+seg([["1","Yes"],["0","No"]],S.remMeals?"1":"0",{a:"remmeals"})+'</div>';
-  return h+'</div><div class="dim" style="margin-top:12px">Body-fat readings: add them under Your numbers.</div></div></div>';
+  h+=sySettings();return h+'</div><div class="dim" style="margin-top:12px">Body-fat readings: add them under Your numbers.</div></div></div>';
 }
 function day(iso){var s=DB.days[iso]||{};var b=blank();for(var k in s)b[k]=s[k];return b;}
 // ===== compute =====
@@ -489,11 +503,14 @@ function warnings(R,today,now){
 }
 // ===== motivation =====
 function loggedDays(upto){return Object.keys(DB.days).filter(function(d){return d<=upto;}).sort();}
-function streakOn(upto){var n=0,start=C(upto).score>=0.8?0:1;for(var i=start;i<120;i++){var d=addDays(upto,-i);if(!DB.days[d])break;if(C(d).score>=0.8)n++;else break;}return n;}
+function isDone(d){return !!(DB.days[d]&&DB.days[d].doneAt);}
+function okDay(d){return isDone(d)||C(d).score>=0.8;}
+function streakOn(upto){var n=0,start=okDay(upto)?0:1;for(var i=start;i<120;i++){var d=addDays(upto,-i);if(!DB.days[d])break;if(okDay(d))n++;else break;}return n;}
+function doneStreak(upto){var n=0,start=isDone(upto)?0:1;for(var i=start;i<120;i++){var d=addDays(upto,-i);if(isDone(d))n++;else break;}return n;}
 function mobOk(r){return r.amMob.s!=="notyet"&&r.amMob.s!=="skipped"&&r.pmMob.s!=="notyet"&&r.pmMob.s!=="skipped";}
 function mobStreak(upto){var n=0,start=mobOk(C(upto))?0:1;for(var i=start;i<120;i++){var d=addDays(upto,-i);if(!DB.days[d])break;if(mobOk(C(d)))n++;else break;}return n;}
 function xpOf(iso){var R=C(iso),m=flowMeta(R);var x=m.filter(function(s){return s.done;}).length*10+Math.round(R.score*50);
-  if(R.eaten.cal>=1600&&R.eaten.cal<=R.calHi)x+=20;if(R.eaten.p>=150)x+=20;if(mobOk(R))x+=15;x-=R.offPlan.length*10;return Math.max(0,x);}
+  if(R.eaten.cal>=1600&&R.eaten.cal<=R.calHi)x+=20;if(R.eaten.p>=150)x+=20;if(mobOk(R))x+=15;if(isDone(iso)){x+=25;var ds0=doneStreak(iso);x+=Math.min(50,(ds0-1)*10);}x-=R.offPlan.length*10;return Math.max(0,x);}
 var LEVELS=["Rookie","Grinder","Disciplined","Plateau Breaker","Lean Machine","Road to Everest"];
 function motivation(upto){
   var ds=loggedDays(upto),xp=0,mobN=0,pf=0,prot=0,ontgt=0,clean=0,wrD=0,good=0;
@@ -502,7 +519,7 @@ function motivation(upto){
     if(has(R.st.bedPain)&&R.painToday===0)pf++;if(R.eaten.p>=150)prot++;if(R.eaten.cal>=1600&&R.eaten.cal<=R.calHi)ontgt++;
     if(R.eaten.cal>0&&R.offPlan.length===0)clean++;if(R.isLadder&&R.wrLive&&R.amDone)wrD++;if(R.score>=0.8)good++;});
   var lvl=Math.min(LEVELS.length-1,Math.floor(xp/300)),race=C(RACE_ISO);
-  var st=streakOn(upto);
+  var st=streakOn(upto),dst=doneStreak(upto),doneN=ds.filter(isDone).length;
   var badges=[
     {e:"🌅",n:"Clean slate",on:good>=1,h:"First 80%+ day"},
     {e:"🟢",n:"Pain-free",on:pf>=1,h:"A full 0 day"},
@@ -512,14 +529,15 @@ function motivation(upto){
     {e:"🍗",n:"Protein pro",on:prot>=3,h:"150 g on 3 days"},
     {e:"🎯",n:"On target",on:ontgt>=3,h:"3 days in range"},
     {e:"🥜",n:"Nut discipline",on:clean>=5,h:"5 days, no off-plan"},
-    {e:"🔥",n:"7-day streak",on:st>=7,h:"7 days at 80%+"},
+    {e:"🔥",n:"7-day streak",on:st>=7,h:"7 days at 80%+ or done"},
+    {e:"✅",n:"Closer",on:dst>=3||doneN>=3,h:"3 days marked done"},
     {e:"🏁",n:"Finisher",on:!!DB.days[RACE_ISO]&&race.amDone&&race.amKind!=="rest",h:raceT()}
   ];
-  return {xp:xp,lvl:lvl,lvlName:LEVELS[lvl],nextAt:(lvl+1)*300,streak:st,mobStreak:mobStreak(upto),mobN:mobN,pf:pf,badges:badges};
+  return {xp:xp,lvl:lvl,lvlName:LEVELS[lvl],nextAt:(lvl+1)*300,streak:st,doneStreak:dst,doneN:doneN,mobStreak:mobStreak(upto),mobN:mobN,pf:pf,badges:badges};
 }
 // ===== UI state =====
 var NOW=nowCT();
-var U={setupCode:"",bfDate:"",bfPct:"",bfSrc:"",settings:false,sel:NOW.iso<"2026-11-01"?"2026-11-01":NOW.iso,view:"plan",open:{},info:null,addOpen:-1,presetQty:"",tab:(DB.meta.tab&&/^(today|food|train|progress|more)$/.test(DB.meta.tab))?DB.meta.tab:"today",focus:null,phView:null,phMsg:"",photoMeal:1,dName:"",dG:"",dN:"",dCal:"",dP:"",dF:"",dC:"",showPlan:false,sumDays:1,sumText:"",msg:SEED_MSG,msgOk:SEED_MSG.indexOf("didn't")<0};
+var U={setupCode:"",bfDate:"",bfPct:"",bfSrc:"",settings:false,sel:NOW.iso<"2026-11-01"?"2026-11-01":NOW.iso,view:"plan",open:{},info:null,addOpen:-1,presetQty:"",tab:"today",showRaw:false,pasteRaw:"",recMsg:"",focus:null,phView:null,phMsg:"",photoMeal:1,dName:"",dG:"",dN:"",dCal:"",dP:"",dF:"",dC:"",showPlan:false,sumDays:1,sumText:"",msg:SEED_MSG,msgOk:SEED_MSG.indexOf("didn't")<0};
 // ===== html atoms =====
 function ring(size,stroke,value,max,ghost,c1,c2,id,inner){
   var sw=stroke/size*100,r=(100-sw)/2,circ=2*Math.PI*r,fr=Math.max(0,Math.min(1,max>0?value/max:0));
@@ -689,6 +707,7 @@ function daySummary(iso){
   var changed=R.lines.filter(function(l){return l.def&&l.qty!==l.def.base;}).map(function(l){return l.name+" "+l.amt;});
   var moved=R.pattern==="two"?R.lines.filter(function(l){return l.moved;}).map(function(l){return l.name+" to Meal "+l.meal;}):[];
   var s=[];
+  if(st.doneAt)s.push("DAY DONE ✓ (marked "+new Date(st.doneAt).toLocaleString("en-US",{timeZone:"America/Chicago",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" CT"+(st.doneOpen&&st.doneOpen.length?"; finished anyway with open: "+st.doneOpen.join(", "):"")+").");
   s.push("Nalam Daily Fuel · "+nice(iso)+" ("+(idx>=0?(idx===14?"race day":"Day "+(idx+1)+" of 15"):"after the race")+").");
   s.push("Weight "+(num(st.weight)>0?st.weight+" lb":"not logged")+(num(st.waist)>0?", waist "+st.waist+" in":"")+".");
   s.push(RL()+" AM: "+hw(R.amMob)+(R.mobStr?"; strengthening: "+hw(R.mobStr):"")+". Day pain: "+(has(st.dayPain)?st.dayPain:"not logged")+".");
@@ -736,17 +755,22 @@ function view(){
   var dayLabel=idx>=0?(idx===14?"RACE DAY":"DAY "+(idx+1)+" OF 15"):"AFTER THE 10K";
   var left=R.calHi-R.eaten.cal,pl=150-R.eaten.p,unk=R.unknown.length;
   var h='<div class="hdr" id="hdr"><div class="hdr-in"><div class="row" style="flex-wrap:nowrap;gap:6px">'+sbtn("‹",{a:"shift",v:-1})+
-    '<button class="hdate" data-a="sel" data-v="'+today+'" aria-label="Back to today"><span class="lbl" style="color:'+(sel===today?K.teal:K.amber)+'">'+dayLabel+(sel===today?" · TODAY":sel<today?" · PAST":" · AHEAD")+'</span><span style="font-size:17px;font-weight:800">'+nice(sel)+'</span></button>'+
-    sbtn("›",{a:"shift",v:1})+'<button class="sbtn" id="gear" data-a="settings" aria-label="Settings">⚙</button></div>'+
-    '<div class="kpis"><div class="kpi" id="kpiCal"><b style="color:'+(left>=0?K.teal:K.red)+'">'+(left>=0?fmt(left):"+"+fmt(-left))+(unk?'<span style="color:'+K.violet+';font-size:13px"> +'+unk+'?</span>':'')+'</b><small>'+(left>=0?"cal left":"cal over")+'</small></div>'+
+    '<button class="hdate" data-a="sel" data-v="'+today+'" aria-label="Back to today"><span class="lbl" style="color:'+(sel===today?K.teal:K.amber)+'">'+dayLabel+(sel===today?" · TODAY":sel<today?" · PAST":" · AHEAD")+'</span><span style="font-size:17px;font-weight:800">'+nice(sel)+(st.doneAt?' <span id="hdrDone" style="font-size:11px;padding:2px 7px;border-radius:999px;background:'+K.lime+';color:'+K.bg+';vertical-align:middle">✓ DONE</span>':'')+'</span></button>'+
+    sbtn("›",{a:"shift",v:1})+(st.doneAt?'<button class="sbtn" id="hdrUnlock" data-a="unlockday" aria-label="Unlock to edit" style="width:auto;padding:0 10px;font-size:13px;color:'+K.lime+';border-color:'+K.lime+'88">🔒</button>':(sel<=today?'<button class="sbtn" id="hdrDoneBtn" data-a="doneask" aria-label="Mark day done" style="width:auto;padding:0 10px;font-size:13px;font-weight:800;color:'+K.lime+';border-color:'+K.lime+'88">✓ Done</button>':''))+'<button class="sbtn" id="gear" data-a="settings" aria-label="Settings">⚙</button></div>'+
+    '<div class="kpis"'+(syOn()?' style="grid-template-columns:repeat(4,1fr)"':'')+'><div class="kpi" id="kpiCal"><b style="color:'+(left>=0?K.teal:K.red)+'">'+(left>=0?fmt(left):"+"+fmt(-left))+(unk?'<span style="color:'+K.violet+';font-size:13px"> +'+unk+'?</span>':'')+'</b><small>'+(left>=0?"cal left":"cal over")+'</small></div>'+
     '<div class="kpi" id="kpiP"><b style="color:'+(pl<=0?K.lime:K.violet)+'">'+(pl<=0?"✓":fmt(pl)+" g")+'</b><small>'+(pl<=0?"protein hit":"protein left")+'</small></div>'+
-    '<div class="kpi" id="kpiS"><b style="color:'+(pct>=80?K.lime:pct>=50?K.amber:K.ember)+'">'+pct+'%</b><small>day score</small></div></div></div></div>';
+    '<div class="kpi" id="kpiS"><b style="color:'+(pct>=80?K.lime:pct>=50?K.amber:K.ember)+'">'+pct+'%</b><small>day score</small></div>'+(syOn()?syPill():'')+'</div></div></div>';
   var T=U.tab;
+  if(!LOAD.ok)h+='<div class="warn" id="loaderr" style="border-color:'+K.red+'88;background:'+K.red+'14;margin-bottom:14px"><span>⛔</span><div><b style="color:'+K.red+'">DATA NOT LOADED · NOTHING WILL BE SAVED</b><div>'+esc(LOAD.err)+'</div><button class="togl sm" data-a="recopen" style="margin-top:6px;color:'+K.text+'">Open Data &amp; recovery</button></div></div>';
+  if(syOn()&&SY.status==="error")h+='<div class="warn" id="syncerr" style="border-color:'+K.amber+'88;background:'+K.amber+'14;margin-bottom:14px"><span>⚠️</span><div><b style="color:'+K.amber+'">SYNC ERROR</b><div>'+esc(SY.err)+' Everything still saves on this device.</div><div class="row" style="margin-top:6px"><button class="togl sm" data-a="syncnow" style="color:'+K.text+'">Retry</button><button class="togl sm" data-a="settings" style="color:'+K.text+'">Settings</button></div></div></div>';
+  if(REPAIR_ERR)h+='<div class="warn" style="border-color:'+K.amber+'88;background:'+K.amber+'14;margin-bottom:14px"><span>⚠️</span><div>'+esc(REPAIR_ERR)+'</div></div>';
   h+='<div id="pg-'+T+'" style="display:flex;flex-direction:column;gap:14px">';
   if(T==="food")h+=pageFood(R,today);else if(T==="train")h+=pageTrain(R,today);else if(T==="progress")h+=pageProgress(R,today);else if(T==="more")h+=pageMore(R,today);else h+=pageToday(R,today);
   h+='</div>';
-  h+='<div class="dim" style="text-align:center;margin-top:4px">Nalam Daily Fuel · v5 · works offline</div>';
+  h+='<div class="dim" style="text-align:center;margin-top:4px">Nalam Daily Fuel · v6 · sync · works offline</div>';
   h+='<nav class="tabs" id="tabs"><div class="tabs-in">'+TABS.map(function(t){var badge=t[0]==="today"&&warnings(R,today,NOW).some(function(w){return w.lvl==="red";})?'<i style="position:absolute;margin-left:22px;width:8px;height:8px;border-radius:4px;background:'+K.red+'"></i>':'';return '<button id="tab-'+t[0]+'" class="'+(T===t[0]?"on":"")+'" data-a="tab" data-v="'+t[0]+'"><span>'+t[1]+badge+'</span>'+t[2]+'</button>';}).join("")+'</div></nav>';
+  if(U.doneSheet)h+=doneSheet(R);
+  if(U.lockMsg)h+='<div id="lockmsg" style="position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 84px);z-index:45;max-width:736px;margin:0 auto;padding:12px 14px;border-radius:14px;background:#13202a;border:1px solid '+K.lime+'88;font-size:14px;font-weight:600;display:flex;gap:10px;align-items:center"><span style="flex:1">🔒 '+esc(U.lockMsg)+'</span><button class="togl sm" data-a="unlockday" style="color:'+K.text+'">Unlock to edit</button><button class="togl sm" data-a="lockclose" style="color:'+K.sub+'">×</button></div>';
   if(U.settings)h+=settingsSheet();
   if(U.info&&INFO[U.info])h+='<div class="sheetbg" id="sheet" data-a="infoclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:8px"><span style="font-weight:800;font-size:17px">'+esc(info(U.info).title)+'</span><button data-a="infoclose" data-x="1" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div>'+info(U.info).body.map(function(b){return '<div style="color:'+K.sub+';font-size:14px;line-height:21px;margin-top:8px">'+esc(b)+'</div>';}).join("")+'</div></div>';
   if(U.phView){var pv=phFind(U.phView);if(pv)h+='<div class="sheetbg" id="phsheet" data-a="phclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:10px"><span style="font-weight:800;font-size:17px">Meal '+(pv.meal||1)+' photo · '+nice(pv.date)+'</span><button data-a="phclose" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div><img src="'+pv.url+'" alt="meal photo" style="width:100%;border-radius:14px;display:block"><div class="row" style="margin-top:12px">'+(R.pattern==="two"?'<button class="btn ghost" data-a="phmove" data-k="'+pv.id+'">⇄ Move to Meal '+((pv.meal||1)===1?2:1)+'</button>':'')+'<button class="btn ghost" data-a="phdel" data-k="'+pv.id+'" style="color:'+K.red+'">Delete photo</button></div></div></div>';}
@@ -761,16 +785,19 @@ function pageToday(R,today){
   h+='<div style="display:grid;gap:6px;grid-template-columns:repeat('+(daysExam===null?3:4)+',1fr)">'+
     '<div class="stat" style="text-align:center"><b style="color:'+K.ember+'">'+(daysRace>0?daysRace:daysRace===0?"🏁":"✓")+'</b><small>'+(daysRace>0?"days to 10K":daysRace===0?"race day":"10K done")+'</small></div>'+
     (daysExam===null?'':'<div class="stat" style="text-align:center"><b style="color:'+K.violet+'">'+(daysExam>=0?daysExam:"✓")+'</b><small>days to '+esc(S.examLabel||"exam")+'</small></div>')+
-    '<div class="stat" style="text-align:center"><b style="color:'+K.amber+'">'+M.streak+'</b><small>day streak</small></div>'+
+    '<div class="stat" style="text-align:center"><b style="color:'+K.amber+'">'+M.streak+'</b><small>day streak'+(M.doneStreak?' · ✓'+M.doneStreak:'')+'</small></div>'+
     '<div class="stat" style="text-align:center"><b style="color:'+K.lime+'">'+M.mobStreak+'</b><small>'+esc(RL().toLowerCase())+' streak</small></div></div>';
   h+='<div class="strip" id="strip">';
   PLANS.forEach(function(q,i){var s=DB.days[q.iso],sc=s?C(q.iso).score:0,isSel=q.iso===sel,isT=q.iso===today,c=i===14?K.ember:q.am==="wr"?K.violet:K.teal;
-    h+='<button data-a="sel" data-v="'+q.iso+'" style="'+(isSel?"border-color:"+c+";background:"+c+"30;box-shadow:0 0 14px "+c+"66":"")+'"><span style="font-size:10px;font-weight:700;color:'+(isT?K.teal:K.dim)+'">'+(isT?"TODAY":DOW[dowOf(q.iso)].toUpperCase())+'</span><span style="font-size:14px;font-weight:800">'+(i===14?"10K":(i+1))+'</span><span style="width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);overflow:hidden;display:block"><span style="display:block;height:3px;width:'+Math.round(sc*100)+'%;background:'+c+'"></span></span></button>';});
+    h+='<button data-a="sel" data-v="'+q.iso+'" style="'+(isSel?"border-color:"+c+";background:"+c+"30;box-shadow:0 0 14px "+c+"66":"")+'"><span style="font-size:10px;font-weight:700;color:'+(isT?K.teal:K.dim)+'">'+(isT?"TODAY":DOW[dowOf(q.iso)].toUpperCase())+'</span>'+(s&&s.doneAt?'<span style="position:absolute;margin:-10px 0 0 30px;font-size:11px;color:'+K.lime+'">✓</span>':'')+'<span style="font-size:14px;font-weight:800">'+(i===14?"10K":(i+1))+'</span><span style="width:22px;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);overflow:hidden;display:block"><span style="display:block;height:3px;width:'+Math.round(sc*100)+'%;background:'+c+'"></span></span></button>';});
   h+='</div><div class="row sb"><input id="datepick" class="inp" type="date" value="'+sel+'" style="padding:6px 10px;font-size:16px;color-scheme:dark"><span class="dim" id="savedTag">'+(saveOk?"● Saved on this phone"+(DB.meta.savedAt?" · "+new Date(DB.meta.savedAt).toLocaleTimeString("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit"})+" CT":""):"⚠ Can't save here")+'</span></div>';
   if(!SEED_MSG&&!DB.meta.seededAt&&!DB.meta.tipDone)h+='<div class="warn" id="tip" style="border-color:'+K.violet+'77;background:'+K.violet+'14;align-items:center"><span>💡</span><div style="flex:1">First time? Paste your setup code in <button data-a="settings" style="background:transparent;border:none;color:'+K.text+';font-weight:800;padding:0;font-size:13px">⚙ Settings</button>.</div><button data-a="tipclose" aria-label="Dismiss" style="background:transparent;border:none;color:'+K.sub+';font-size:20px;padding:0 4px">×</button></div>';
   if(SEED_MSG)h+='<div class="warn" id="seedmsg" style="border-color:'+K.lime+'66;background:'+K.lime+'12">'+esc(SEED_MSG)+'</div>';
+  var edays=entryDays();if(!hasActuals(DB.days[sel])&&edays.length&&edays.indexOf(sel)<0)h+='<div class="warn" id="otherdays" style="border-color:'+K.amber+'88;background:'+K.amber+'14;align-items:flex-start"><span>🔎</span><div style="flex:1"><b style="color:'+K.amber+'">NOTHING LOGGED FOR '+esc(nice(sel).toUpperCase())+'</b><div>Saved entries in this browser are on:</div><div class="row" style="margin-top:6px">'+edays.slice(-6).map(function(d){return '<button class="togl sm" data-a="sel" data-v="'+d+'" style="color:'+K.text+';min-height:40px">'+esc(nice(d))+'</button>';}).join("")+'<button class="togl sm" data-a="recopen" style="color:'+K.text+';min-height:40px">Data &amp; recovery</button></div></div></div>';
   if(sel>today)h+='<div class="warn" style="border-color:'+K.violet+'88;background:'+K.violet+'14">Planning ahead: this is a future day. Look now, log on the day.</div>';
   else if(sel<today)h+='<div class="warn" style="border-color:'+K.teal+'66;background:'+K.teal+'10">Editing a past day ('+nice(sel)+'). Changes save to that day.</div>';
+  if(st.doneAt)h+='<div class="card" id="donecard" style="border-color:'+K.lime+'88;background:linear-gradient(160deg,rgba(110,240,160,0.16),rgba(34,227,207,0.06))"><div class="row sb"><span class="h2">✅ Day done</span><span class="lbl" style="color:'+K.lime+'">'+new Date(st.doneAt).toLocaleTimeString("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit"})+' CT</span></div><div class="muted" style="margin-top:4px">Read-only. '+M.doneStreak+'-day completion streak · +'+(25+Math.min(50,(M.doneStreak-1)*10))+' XP for closing it out.</div><div class="row" style="margin-top:10px"><button class="btn" data-a="donesend">📤 Send to Nalam</button><button class="btn ghost" data-a="unlockday" id="unlockBtn">🔓 Unlock to edit</button></div></div>';
+  else if(sel<=today)h+='<button class="btn" id="markDone" data-a="doneask" style="width:100%;min-height:58px;font-size:17px;border-radius:18px;box-shadow:0 10px 30px rgba(110,240,160,0.25)">🏁 Mark day done'+(M.doneStreak?' · '+M.doneStreak+'-day streak':'')+'</button>';
   h+='<div class="card" style="padding:12px"><div class="row sb" style="margin-bottom:8px"><span class="lbl">Coach · stay on plan</span><span class="dim">'+(W.length?W.length+" alert"+(W.length>1?"s":""):"all clear")+'</span></div><div style="display:flex;flex-direction:column;gap:6px" id="coach">';
   if(!W.length)h+='<div class="warn" style="border-color:'+K.lime+'66;background:'+K.lime+'12"><span>✅</span><div><b style="color:'+K.lime+'">ON PLAN</b><div>Nothing pulling you off course. Next: '+(active>=0?esc(steps[active].title):"day complete")+'.</div></div></div>';
   W.forEach(function(w){var c=w.lvl==="red"?K.red:w.lvl==="amber"?K.amber:K.teal;h+='<div class="warn" style="border-color:'+c+'77;background:'+c+'14"><span>'+(w.lvl==="red"?"⛔":w.lvl==="amber"?"⚠️":"ℹ️")+'</span><div><b style="color:'+c+'">'+esc(w.t)+'</b><div>'+esc(w.m)+'</div>'+(w.fix?'<button class="togl sm" data-a="'+w.fix.a+'"'+(w.fix.k?' data-k="'+w.fix.k+'"':'')+' style="margin-top:6px;color:'+K.text+'">'+esc(w.fix.l)+'</button>':'')+'</div></div>';});
@@ -846,10 +873,11 @@ function pageProgress(R,today){
 function pageMore(R,today){
   var st=R.st,sel=R.iso,remDay=remOn(sel),h="",ds=sumDates();ds.forEach(phEnsure);var nph=phFiles(ds).length,unkN=ds.reduce(function(a,d){return a+C(d).unknown.length;},0);
   // send to Nalam
-  h+='<div class="card" style="background:linear-gradient(160deg,rgba(142,108,255,0.12),rgba(34,227,207,0.06))"><div class="row sb" style="margin-bottom:10px"><span class="h2">📤 Send to Nalam</span>'+ib("save")+'</div><div class="row" style="margin-bottom:10px"><span class="dim">Include</span>'+seg([["1","This day"],["2","Last 2 days"],["3","Last 3 days"]],String(U.sumDays),{a:"sumdays"})+'</div><div class="row"><button class="btn" id="shareBtn" data-a="share" style="min-height:48px">'+(nph?"Share summary + "+nph+" photo"+(nph>1?"s":"")+"…":"Share to Nalam…")+'</button><button class="btn ghost" id="copyBtn" data-a="copy" style="min-height:48px">Copy summary</button>'+(nph?'<button class="btn ghost" id="sharePh" data-a="shareph" style="min-height:48px">Share photos only</button>':'')+'</div>'+(unkN?'<div class="dim" style="margin-top:8px;color:'+K.violet+'">'+unkN+' item(s) need an estimate: Nalam fills them in from the summary'+(nph?' and photos':'')+'.</div>':'')+
+  h+='<div class="card" id="sendcard" style="background:linear-gradient(160deg,rgba(142,108,255,0.12),rgba(34,227,207,0.06))"><div class="row sb" style="margin-bottom:10px"><span class="h2">📤 Send to Nalam</span>'+ib("save")+'</div><div class="row" style="margin-bottom:10px"><span class="dim">Include</span>'+seg([["1","This day"],["2","Last 2 days"],["3","Last 3 days"]],String(U.sumDays),{a:"sumdays"})+'</div><div class="row"><button class="btn" id="shareBtn" data-a="share" style="min-height:48px">'+(nph?"Share summary + "+nph+" photo"+(nph>1?"s":"")+"…":"Share to Nalam…")+'</button><button class="btn ghost" id="copyBtn" data-a="copy" style="min-height:48px">Copy summary</button>'+(nph?'<button class="btn ghost" id="sharePh" data-a="shareph" style="min-height:48px">Share photos only</button>':'')+'</div>'+(unkN?'<div class="dim" style="margin-top:8px;color:'+K.violet+'">'+unkN+' item(s) need an estimate: Nalam fills them in from the summary'+(nph?' and photos':'')+'.</div>':'')+
     (U.msg?'<div id="msg" style="margin-top:8px;font-size:13px;font-weight:600;color:'+(U.msgOk?K.lime:K.amber)+'">'+esc(U.msg)+'</div>':'')+
     (U.sumText?'<textarea id="sumbox" class="inp" readonly rows="7" style="margin-top:10px;font-size:13px;line-height:19px">'+esc(U.sumText)+'</textarea>':'')+
     '<div class="dim" style="margin-top:8px">Once a day is enough'+(DB.meta.lastSent?" · last shared "+new Date(DB.meta.lastSent).toLocaleString("en-US",{timeZone:"America/Chicago",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" CT":"")+'. Nalam can\'t see this phone, so this is how your entries and pain points reach Nalam.</div></div>';
+  h+=recoveryPanel();
   // pain points
   h+='<div class="card" style="border-color:'+K.amber+'55"><div class="row sb" style="margin-bottom:8px"><span class="h2">🛠 Pain points / fix this</span>'+ib("pains")+'</div><div class="dim" style="margin-bottom:8px">Anything the app can\'t do, gets wrong, or makes slow. Saved for '+nice(sel)+'; goes into Send to Nalam.</div><textarea id="f-notes" class="inp" data-f="notes" rows="3" placeholder="e.g. need an option for…; this number looks off…">'+esc(st.notes||"")+'</textarea>';
   var past=loggedDays(today).filter(function(d){return d!==sel&&DB.days[d].notes&&DB.days[d].notes.trim();}).slice(-3);
@@ -862,6 +890,150 @@ function pageMore(R,today){
   h+='<div class="card"><div class="row sb"><span class="h2">⚙ Settings</span><button class="btn ghost" data-a="settings">Open settings</button></div><div class="dim" style="margin-top:8px">Setup code, race, reminder and goal values. Saved on this phone only.</div></div>';
   return h;
 }
+function ownedKeys(){var out=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf("nalam")===0)out.push(k);}}catch(e){}return out.sort();}
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function bytesOf(v){try{return new Blob([v||""]).size;}catch(e){return String(v||"").length;}}
+function kb(n){return n<1024?n+" B":(n/1024).toFixed(1)+" KB";}
+function browserName(){var u=navigator.userAgent||"";return /Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Firefox\//.test(u)?"Firefox":/Safari\//.test(u)?"Safari":"browser";}
+function entryDays(){return Object.keys(DB.days).filter(function(d){return hasActuals(DB.days[d]);}).sort();}
+function rawDump(){var o={};ownedKeys().forEach(function(k){var v=lsGet(k);try{o[k]=JSON.parse(v);}catch(e){o[k]=v;}if(k===SKEY&&o[k]&&o[k].token)o[k].token="(hidden)";});return JSON.stringify(o,null,1);}
+function bakInfo(k){var v=lsGet(k),n=0,ds=[];try{var d=parseDB(v);ds=Object.keys(d.days).filter(function(x){return hasActuals(d.days[x]);}).sort();n=ds.length;}catch(e){}return {size:bytesOf(v),days:ds,ok:n>=0&&!!v};}
+function recoveryPanel(){
+  var today=nowCT().iso,keys=ownedKeys(),ed=entryDays(),baks=bakList(),inB=DB.meta.repairBackup||{},h="";
+  h+='<div class="card" id="recovery" style="border-color:'+(LOAD.ok?K.teal+"55":K.red+"88")+'"><div class="row sb" style="margin-bottom:8px"><span class="h2">🛟 Data &amp; recovery</span><span class="lbl" style="color:'+(LOAD.ok?K.lime:K.red)+'">'+(LOAD.ok?"STORAGE OK":"READ-ONLY")+'</span></div>';
+  h+='<div class="dim" style="line-height:18px">'+esc(browserName())+(window.matchMedia&&matchMedia("(display-mode: standalone)").matches?" · Home Screen app":" · browser tab")+' · '+esc(location.host+location.pathname)+'<br>Chicago now: '+esc(nice(today))+' '+esc(hm12(nowCT().hm))+' CT · clock: '+esc(CLOCK_SRC)+'<br>Each browser (Safari, Chrome, private windows) keeps its own separate data.</div>';
+  if(!LOAD.ok)h+='<div class="warn" style="margin-top:10px;border-color:'+K.red+'88;background:'+K.red+'14"><span>⛔</span><div>'+esc(LOAD.err)+(LOAD.raw?'<div class="row" style="margin-top:8px"><button class="togl sm" data-a="recfresh" style="color:'+K.text+'">Back up the unreadable data and start fresh</button></div>':'')+'</div></div>';
+  if(REPAIR_ERR)h+='<div class="warn" style="margin-top:10px;border-color:'+K.amber+'88;background:'+K.amber+'14"><span>⚠️</span><div>'+esc(REPAIR_ERR)+'</div></div>';
+  h+='<div class="lbl" style="margin:14px 0 6px">Storage keys</div>';
+  if(!keys.length)h+='<div class="dim">None. This browser has no Nalam data saved.</div>';
+  keys.forEach(function(k){h+='<div class="row sb" style="padding:6px 0;border-bottom:1px solid '+K.line+'"><span style="font-size:12px;word-break:break-all;flex:1 1 200px">'+esc(k)+'</span><span class="dim">'+kb(bytesOf(lsGet(k)))+'</span></div>';});
+  h+='<div class="lbl" style="margin:14px 0 6px">Days with entries ('+ed.length+')</div>';
+  h+=ed.length?'<div class="row">'+ed.map(function(d){return '<button class="togl sm" data-a="recgo" data-v="'+d+'" style="color:'+K.text+';min-height:40px">'+esc(nice(d))+(d===today?" · today":d>today?" · future":"")+'</button>';}).join("")+'</div>':'<div class="dim">No entries saved in this browser.</div>';
+  if(DB.meta.repairLog&&DB.meta.repairLog.length)h+='<div class="dim" style="margin-top:8px">Date fix log: '+DB.meta.repairLog.map(function(x){return esc(nice(x.from)+" → "+nice(x.to)+" ("+x.how.split(" ")[0]+")");}).join(", ")+'</div>';
+  h+='<div class="lbl" style="margin:14px 0 6px">Backups ('+(baks.length+Object.keys(inB).length)+')</div>';
+  if(!baks.length&&!Object.keys(inB).length)h+='<div class="dim">No backups yet. One is made automatically before any date fix or restore.</div>';
+  baks.slice().reverse().forEach(function(k){var bi=bakInfo(k);h+='<div class="item" style="margin-bottom:6px" id="bk-'+esc(k.replace(/[^A-Za-z0-9]/g,""))+'"><div style="flex:1 1 180px;min-width:0"><div style="font-weight:700;font-size:13px;word-break:break-all">'+esc(k.slice(BAK.length))+'</div><div class="dim">'+kb(bi.size)+' · '+(bi.days.length?bi.days.length+" day(s): "+esc(bi.days.map(function(d){return nice(d).slice(5);}).join(", ")):"no entries")+'</div></div><button class="btn ghost" data-a="recrestore" data-k="'+esc(k)+'" style="min-height:44px">Restore</button></div>';});
+  Object.keys(inB).sort().forEach(function(d){h+='<div class="item" style="margin-bottom:6px"><div style="flex:1 1 180px;min-width:0"><div style="font-weight:700;font-size:13px">Original '+esc(nice(d))+' record</div><div class="dim">kept by the date fix'+(DB.days[d]?" · "+esc(nice(d))+" has data now; restore merges":"")+'</div></div><button class="btn ghost" data-a="recday" data-k="'+d+'" style="min-height:44px">Restore to '+esc(nice(d).slice(5))+'</button></div>';});
+  h+='<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="recraw" style="min-height:44px">'+(U.showRaw?"Hide raw JSON":"Show raw JSON")+'</button>'+(U.showRaw?'<button class="btn" data-a="reccopy" style="min-height:44px">Copy all data</button>':'')+'</div>';
+  if(U.showRaw)h+='<textarea id="rawbox" class="inp" readonly rows="8" style="margin-top:10px;font-size:12px;line-height:16px;font-family:ui-monospace,Menlo,monospace">'+esc(rawDump())+'</textarea>';
+  h+='<div class="lbl" style="margin:14px 0 6px">Restore from pasted JSON</div><div class="dim" style="margin-bottom:6px">Paste data copied from another browser or device. Days in the paste replace the same days here; other days stay. A backup is made first.</div><textarea id="u-pasteRaw" class="inp" data-u="pasteRaw" rows="3" placeholder="Paste raw JSON here" autocomplete="off" autocapitalize="off" spellcheck="false" style="font-size:12px">'+esc(U.pasteRaw)+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="recpaste"'+(U.pasteRaw.trim()?'':' disabled')+' style="min-height:44px">Restore from paste</button></div>';
+  if(U.recMsg)h+='<div id="recmsg" style="margin-top:8px;font-size:13px;font-weight:600;color:'+K.lime+'">'+esc(U.recMsg)+'</div>';
+  return h+'</div>';
+}
+function recAction(a,el){
+  var k=el.dataset.k,v=el.dataset.v;
+  if(a==="recgo"){U.sel=v;U.tab="today";window.scrollTo(0,0);return true;}
+  if(a==="recraw"){U.showRaw=!U.showRaw;return true;}
+  if(a==="reccopy"){var t=rawDump();var fin=function(ok){U.recMsg=ok?"All data copied.":"Copy blocked: select the text in the box and copy it.";render();};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){fin(true);},function(){fin(fallbackCopy(t));});else fin(fallbackCopy(t));return "async";}
+  if(a==="recfresh"){if(!confirm("Keep a copy of the unreadable data as a backup and start fresh?"))return true;try{localStorage.setItem(BAK+"unreadable-"+Date.now(),LOAD.raw);}catch(e){alert("Couldn't make the backup, so nothing was changed.");return true;}LOAD.ok=true;LOAD.err="";DB={v:4,days:{},meta:{}};if(!DB.settings)DB.settings={};save();loadS();U.recMsg="Backed up. Starting fresh.";return true;}
+  if(a==="recrestore"){var raw=lsGet(k),d;try{d=parseDB(raw);}catch(e){alert("That backup can't be read.");return true;}
+    if(!confirm("Restore this backup? Your current data is backed up first, so nothing is lost."))return true;if(LOAD.ok&&lsGet(KEY)!==null&&!makeBackup("before-restore")){alert("Couldn't back up current data, so nothing was changed.");return true;}
+    try{localStorage.setItem(KEY,raw);}catch(e){alert("Couldn't write: "+e.name);return true;}DB=d;LOAD.ok=true;LOAD.err="";if(!DB.settings)DB.settings={};loadS();memo={};Object.keys(DB.days).forEach(function(x){if(DB.days[x])DB.days[x].updatedAt=Date.now();syMark(x);});save();U.recMsg="Restored "+entryDays().length+" day(s).";return true;}
+  if(a==="recday"){var b=(DB.meta.repairBackup||{})[k];if(!b)return true;makeBackup("before-day-restore");var cur=DB.days[k];DB.days[k]=cur?mergeDay(cur,b.rec).rec:b.rec;DB.days[k].updatedAt=Date.now();DB.days[k].ft={};if(DB.meta.moved)delete DB.meta.moved[k];save();syMark(k);U.recMsg="Restored the original "+nice(k)+" record.";return true;}
+  if(a==="recpaste"){var o;try{o=JSON.parse(U.pasteRaw);}catch(e){alert("That isn't valid JSON.");return true;}
+    var src=o&&o.days?o:(o&&o[KEY]&&o[KEY].days?o[KEY]:null);if(!src){alert("No Nalam days found in that paste.");return true;}
+    if(!LOAD.ok){alert("Storage here is read-only. Use 'start fresh' first.");return true;}
+    makeBackup("before-paste");for(var d2 in src.days){DB.days[d2]=src.days[d2];syMark(d2);}if(src.settings){if(!DB.settings)DB.settings={};for(var s2 in src.settings)DB.settings[s2]=src.settings[s2];loadS();}save();U.pasteRaw="";U.recMsg="Restored "+Object.keys(src.days).length+" day(s) from the paste.";return true;}
+  return false;
+}
+// ===== mark day done =====
+function dayLocked(){var d=DB.days[U.sel];if(d&&d.doneAt){U.lockMsg=nice(U.sel)+" is marked done, so it's read-only.";return true;}return false;}
+function openItems(R){var st=R.st,p=R.plan,o=[];
+  if(!(num(st.weight)>0))o.push({k:"weigh",t:"Weight not logged"});
+  if(R.amMob.s==="notyet")o.push({k:"ammob",t:RL()+" AM not logged"});
+  if(R.mobStr&&R.mobStr.s==="notyet")o.push({k:"ammob",t:"Strengthening not logged"});
+  if(p.am!=="rest"&&R.amKind!=="rest"&&R.amStatus==="planned")o.push({k:"am",t:sessionInfo(R).name+" not marked done or skipped"});
+  if(p.pm!=="none"&&R.pmStatus==="planned")o.push({k:"pm",t:"Strength not marked done or skipped ("+R.setsDone+"/"+R.sk.length+" sets)"});
+  if(R.pmMob.s==="notyet")o.push({k:"pmmob",t:RL()+" PM not logged"});
+  if(!has(st.bedPain))o.push({k:"pmmob",t:"Bedtime pain score not logged"});
+  if(R.amStatus==="done"&&!has(st.walkPain))o.push({k:"am",t:"Pain after the session not logged"});
+  if(R.eaten.cal===0)o.push({k:"food",t:"No food marked eaten"});
+  R.unknown.forEach(function(l){o.push({k:"food",t:"Needs estimate: "+l.name+" (Nalam will estimate it)"});});
+  return o;}
+function doneSheet(R){var o=openItems(R),h='<div class="sheetbg" id="donesheet" data-a="doneclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:8px"><span style="font-weight:800;font-size:18px">🏁 Mark '+esc(nice(R.iso))+' done</span><button data-a="doneclose" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div>';
+  if(o.length){h+='<div class="muted" style="margin-bottom:10px">Still open ('+o.length+'). Tap one to fix it, or finish anyway.</div><div style="display:flex;flex-direction:column;gap:6px" id="openlist">'+o.map(function(x){return '<button class="nx" data-a="donefix" data-k="'+x.k+'" style="min-height:48px"><span style="color:'+K.amber+'">⚠️</span><span style="flex:1">'+esc(x.t)+'</span><span style="color:'+K.dim+'">›</span></button>';}).join("")+'</div>';}
+  else h+='<div class="warn" style="border-color:'+K.lime+'66;background:'+K.lime+'12"><span>✅</span><div>Everything is logged. Day score '+Math.round(R.score*100)+'%.</div></div>';
+  h+='<div class="dim" style="margin-top:10px">Done makes the day read-only (Unlock to edit any time), counts toward your streaks, and opens Send to Nalam.</div><div class="row" style="margin-top:12px"><button class="btn" id="doneGo" data-a="donego" style="min-height:50px;flex:1">'+(o.length?"Finish anyway · mark done":"✓ Mark day done")+'</button><button class="btn ghost" data-a="doneclose" style="min-height:50px">Not yet</button></div></div></div>';
+  return h;}
+function markDone(){var R=C(U.sel),o=openItems(R),cur=DB.days[U.sel]||{},nd=cp(cur);nd.doneAt=Date.now();nd.doneOpen=o.map(function(x){return x.t;});nd.updatedAt=Date.now();if(!nd.createdAt)nd.createdAt=Date.now();
+  if(U.sel>nowCT().iso)return;var f2=cp(nd.ft||{});f2.doneAt=f2.doneOpen=nd.doneAt;nd.ft=f2;DB.days[U.sel]=nd;save();syMark(U.sel);syncNow({quiet:true});U.doneSheet=false;openSend();}
+function openSend(){U.tab="more";U.sumDays=1;memo={};U.sumText=buildSummary();U.msg="Day done. Share it with Nalam now.";U.msgOk=true;U.focus="sendcard";render();}
+// ===== sync to a private GitHub repo (optional; off until a token is saved on this device) =====
+var SKEY="nalam-sync-v1";
+var SY=(function(){var d={owner:"avisreverse",repo:"nalam-data",token:"",dirty:{},shas:{},phUp:{},lastSync:0,lastPull:0,status:"",err:""};try{var r=localStorage.getItem(SKEY);if(r){var o=JSON.parse(r);for(var k in o)d[k]=o[k];}}catch(e){}if(!d.dirty)d.dirty={};if(!d.shas)d.shas={};if(!d.phUp)d.phUp={};return d;})();
+var SYNC={busy:false,timer:null,again:false};
+function sySave(){try{localStorage.setItem(SKEY,JSON.stringify(SY));}catch(e){}}
+function syOn(){return !!(SY.token&&SY.owner&&SY.repo&&LOAD.ok);}
+function sySet(st,err){SY.status=st;SY.err=err||"";sySave();}
+function b64e(str){return btoa(unescape(encodeURIComponent(str)));}
+function b64d(b){return decodeURIComponent(escape(atob(String(b).replace(/\s/g,""))));}
+function bufB64(buf){var u=new Uint8Array(buf),s="",i;for(i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s);}
+function b64Buf(b){var bin=atob(String(b).replace(/\s/g,"")),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
+function gh(path,opt){opt=opt||{};var url="https://api.github.com/repos/"+encodeURIComponent(SY.owner.trim())+"/"+encodeURIComponent(SY.repo.trim())+"/contents/"+path;
+  return fetch(url,{method:opt.method||"GET",cache:"no-store",headers:{"Authorization":"Bearer "+SY.token.trim(),"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},body:opt.body?JSON.stringify(opt.body):undefined})
+   .then(function(res){if(res.status===404)return {status:404,json:null};return res.json().then(function(j){return {status:res.status,json:j};},function(){return {status:res.status,json:null};});},function(e){var x=new Error("offline");x.offline=true;throw x;});}
+function ghErr(r){var x=new Error(r.status===401?"token rejected (401). Check the token in Settings.":r.status===403?"no permission (403). The token needs Contents: Read and write on this repo.":"GitHub error "+r.status+(r.json&&r.json.message?": "+r.json.message:""));x.status=r.status;return x;}
+// per-field merge: newest field wins, nothing is ever deleted
+function fieldTs(rec,k){return num((rec.ft||{})[k])||num(rec.updatedAt);}
+function mergeRemote(loc,rem){
+  if(!loc)return {rec:rem,pullNew:true,pushNew:false};
+  var out={},ft={},k,pullNew=false,pushNew=false,keys={};
+  for(k in loc)keys[k]=1;for(k in rem)keys[k]=1;delete keys.ft;delete keys.updatedAt;
+  for(k in keys){var inL=k in loc,inR=k in rem;
+    if(inL&&!inR){out[k]=loc[k];ft[k]=fieldTs(loc,k);pushNew=true;continue;}
+    if(inR&&!inL){out[k]=rem[k];ft[k]=fieldTs(rem,k);pullNew=true;continue;}
+    var tl=fieldTs(loc,k),tr=fieldTs(rem,k),same=JSON.stringify(loc[k])===JSON.stringify(rem[k]);
+    if(same||tl>=tr){out[k]=loc[k];ft[k]=Math.max(tl,tr);if(!same)pushNew=true;}else{out[k]=rem[k];ft[k]=tr;pullNew=true;}}
+  out.ft=ft;out.updatedAt=Math.max(num(loc.updatedAt),num(rem.updatedAt));
+  return {rec:out,pullNew:pullNew,pushNew:pushNew};}
+function syMark(d){if(!syOn()||!d)return;SY.dirty[d]=Date.now();sySet("pending");clearTimeout(SYNC.timer);SYNC.timer=setTimeout(function(){syncNow();},5000);}
+function applyRemoteDay(d,file){var rec=file&&file.rec;if(!rec||typeof rec!=="object")return false;
+  if(rec.movedTo){return false;}
+  if(DB.meta.moved&&DB.meta.moved[d]&&!DB.days[d]){SY.dirty[d]=SY.dirty[d]||Date.now();return false;}
+  var m=mergeRemote(DB.days[d],rec);if(m.pullNew||!DB.days[d]){DB.days[d]=m.rec;}if(m.pushNew)SY.dirty[d]=SY.dirty[d]||Date.now();return m.pullNew;}
+function pushDay(d,tries){tries=tries||0;var path="data/"+d+".json";
+  return gh(path).then(function(r){if(r.status!==200&&r.status!==404)throw ghErr(r);var sha=r.status===200&&r.json?r.json.sha:undefined;
+    if(sha&&r.json.content){try{applyRemoteDay(d,JSON.parse(b64d(r.json.content)));}catch(e){}}
+    var moved=(DB.meta.moved||{})[d],rec=DB.days[d]||(moved?{movedTo:moved,updatedAt:Date.now()}:null);if(!rec){delete SY.dirty[d];return;}
+    var body={message:"nalam "+d,content:b64e(JSON.stringify({v:1,date:d,at:Date.now(),rec:rec},null,1))};if(sha)body.sha=sha;
+    return gh(path,{method:"PUT",body:body}).then(function(p){
+      if(p.status===409||(p.status===422&&tries<3)){if(tries>=3)throw ghErr(p);return pushDay(d,tries+1);}
+      if(p.status!==200&&p.status!==201)throw ghErr(p);
+      SY.shas[path]=p.json&&p.json.content?p.json.content.sha:"";delete SY.dirty[d];});});}
+function pullAll(){return gh("data").then(function(r){if(r.status===404)return 0;if(r.status!==200)throw ghErr(r);var list=Array.isArray(r.json)?r.json:[],changed=0;
+  var todo=list.filter(function(f){return f.type==="file"&&/^\d{4}-\d{2}-\d{2}\.json$/.test(f.name)&&SY.shas[f.path]!==f.sha;});
+  return todo.reduce(function(pr,f){return pr.then(function(){return gh(f.path).then(function(g){if(g.status!==200||!g.json)return;var d=f.name.slice(0,10);try{if(applyRemoteDay(d,JSON.parse(b64d(g.json.content))))changed++;}catch(e){}SY.shas[f.path]=f.sha;});});},Promise.resolve()).then(function(){return changed;});});}
+function syncPhotos(){if(!window.indexedDB)return Promise.resolve();
+  return phReq("readonly",function(os){return os.getAll();}).then(function(all){all=all||[];var have={};all.forEach(function(p){have[p.id]=1;});
+    var up=all.filter(function(p){return !SY.phUp[p.id];});
+    return up.reduce(function(pr,p){return pr.then(function(){var path="data/photos/"+p.date+"-meal"+(p.meal||1)+"-"+p.id+".jpg";return gh(path).then(function(g){if(g.status===200){SY.phUp[p.id]=1;return;}
+      return gh(path,{method:"PUT",body:{message:"photo "+p.date,content:bufB64(p.buf)}}).then(function(r){if(r.status===200||r.status===201||r.status===422)SY.phUp[p.id]=1;});});});},Promise.resolve())
+    .then(function(){return gh("data/photos");}).then(function(r){if(!r||r.status!==200||!Array.isArray(r.json))return;var miss=r.json.filter(function(f){var m=f.name.match(/^(\d{4}-\d{2}-\d{2})-meal(\d)-(.+)\.jpg$/);return m&&!have[m[3]];});
+      return miss.reduce(function(pr,f){return pr.then(function(){return gh(f.path).then(function(g){if(g.status!==200||!g.json||!g.json.content)return;var m=f.name.match(/^(\d{4}-\d{2}-\d{2})-meal(\d)-(.+)\.jpg$/);SY.phUp[m[3]]=1;
+        return phPut({id:m[3],date:m[1],meal:+m[2],t:Date.now(),buf:b64Buf(g.json.content),type:"image/jpeg"}).then(function(){delete PH.days[m[1]];});});});},Promise.resolve());});});}
+function syncNow(opts){opts=opts||{};if(!syOn())return Promise.resolve();if(SYNC.busy){SYNC.again=true;return Promise.resolve();}
+  if(navigator.onLine===false){sySet("offline");render();return Promise.resolve();}
+  var tgt=SY.owner.trim()+"/"+SY.repo.trim();if(SY.seededFor!==tgt){Object.keys(DB.days).forEach(function(d){SY.dirty[d]=SY.dirty[d]||Date.now();});SY.seededFor=tgt;SY.shas={};SY.phUp={};sySave();}
+  SYNC.busy=true;clearTimeout(SYNC.timer);if(!opts.quiet){sySet("syncing");render();}
+  return pullAll().then(function(changed){var ds=Object.keys(SY.dirty).sort();return ds.reduce(function(pr,d){return pr.then(function(){return pushDay(d);});},Promise.resolve()).then(function(){return changed;});})
+   .then(function(changed){if(changed){memo={};save();}SY.lastSync=Date.now();sySet(Object.keys(SY.dirty).length?"pending":"synced");return syncPhotos().catch(function(){});})
+   .then(function(){SYNC.busy=false;sySave();render();if(SYNC.again){SYNC.again=false;syncNow({quiet:true});}},
+    function(e){SYNC.busy=false;sySet(e&&e.offline?"offline":"error",e&&e.offline?"":(e&&e.message)||"sync failed");render();});}
+function syTest(){if(!SY.token.trim()){SY.testMsg="Paste a token first.";render();return;}SY.testMsg="Testing…";render();
+  fetch("https://api.github.com/repos/"+encodeURIComponent(SY.owner.trim())+"/"+encodeURIComponent(SY.repo.trim()),{cache:"no-store",headers:{"Authorization":"Bearer "+SY.token.trim(),"Accept":"application/vnd.github+json"}})
+   .then(function(r){return r.json().then(function(j){return {s:r.status,j:j};},function(){return {s:r.status,j:{}};});})
+   .then(function(x){if(x.s===200){var w=x.j.permissions?x.j.permissions.push:true;SY.testMsg=(x.j.private===false?"⚠ Connected, but this repo is PUBLIC. Make it private before syncing. ":"✓ Connected to "+(x.j.full_name||SY.repo)+(x.j.private?" (private)":"")+". ")+(w?"":"Token can't write: give it Contents: Read and write.");if(x.j.private!==false&&w)syncNow();}
+     else SY.testMsg=x.s===401?"✗ Token rejected (401).":x.s===404?"✗ Repo not found, or the token can't see it (404).":"✗ GitHub said "+x.s+".";sySave();render();},
+    function(){SY.testMsg="✗ Offline or blocked. Try again when online.";render();});}
+function syPill(){var st=SY.status||"pending",c=st==="synced"?K.lime:st==="error"?K.red:st==="offline"?K.dim:K.amber,
+  t=st==="synced"?"synced":st==="syncing"?"syncing…":st==="error"?"error":st==="offline"?"offline":"pending";
+  return '<button class="kpi" id="syncPill" data-a="syncnow" style="color:'+K.text+'"><b style="color:'+c+';font-size:15px">'+(st==="synced"?"✓":st==="error"?"!":st==="offline"?"⌁":"↻")+' '+t+'</b><small>'+(SY.lastSync?"sync "+new Date(SY.lastSync).toLocaleTimeString("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit"}):"tap to sync")+'</small></button>';}
+function sySettings(){return '<div class="lbl" style="margin-top:14px">Sync · private GitHub repo (optional)</div><div class="dim">Keeps phone and Mac in sync and lets Nalam read your days. The token stays on this device only.</div>'+
+  '<div class="row"><input id="sy-owner" class="inp" data-sy="owner" value="'+esc(SY.owner)+'" placeholder="owner" autocomplete="off" autocapitalize="off" style="flex:1 1 40%;min-width:0"><input id="sy-repo" class="inp" data-sy="repo" value="'+esc(SY.repo)+'" placeholder="repo" autocomplete="off" autocapitalize="off" style="flex:1 1 40%;min-width:0"></div>'+
+  '<input id="sy-token" class="inp" type="password" data-sy="token" value="'+esc(SY.token)+'" placeholder="Fine-grained token (github_pat_…)" autocomplete="off" autocapitalize="off" spellcheck="false">'+
+  '<div class="row"><button class="btn" data-a="sytest" id="syTest">Test connection</button><button class="btn ghost" data-a="syncnow"'+(syOn()?'':' disabled')+'>Sync now</button>'+(SY.token?'<button class="btn ghost" data-a="syforget" style="color:'+K.red+'">Remove token</button>':'')+'</div>'+
+  (SY.testMsg?'<div id="sytestmsg" style="font-size:13px;font-weight:600;color:'+(/^✓/.test(SY.testMsg)?K.lime:K.amber)+'">'+esc(SY.testMsg)+'</div>':'')+
+  (syOn()?'<div class="dim">Status: '+esc(SY.status||"pending")+(SY.err?" · "+esc(SY.err):"")+(Object.keys(SY.dirty).length?" · "+Object.keys(SY.dirty).length+" day(s) waiting":"")+'</div>':'');}
 // ===== DOM morph: patches in place so the focused field and keyboard stay put =====
 function morph(a,b){
   if(a.nodeType!==b.nodeType||a.nodeName!==b.nodeName){a.parentNode.replaceChild(b.cloneNode(true),a);return;}
@@ -888,9 +1060,9 @@ function morphKids(a,b){
 }
 var root=document.getElementById("app");
 function render(){var t=document.createElement("div");t.innerHTML=view();morphKids(root,t);
-  if(U.focus){var f=U.focus;U.focus=null;var el=document.getElementById("step-"+f);if(el){var y=el.getBoundingClientRect().top+window.pageYOffset-(document.getElementById("hdr")||{offsetHeight:120}).offsetHeight-10;window.scrollTo(0,Math.max(0,y));}}}
+  if(U.focus){var f=U.focus;U.focus=null;var el=document.getElementById("step-"+f)||document.getElementById(f);if(el){var y=el.getBoundingClientRect().top+window.pageYOffset-(document.getElementById("hdr")||{offsetHeight:120}).offsetHeight-10;window.scrollTo(0,Math.max(0,y));}}}
 // ===== actions =====
-function upd(patch){var tdy=nowCT().iso;if(U.sel>tdy&&U.okFuture!==U.sel){if(!confirm("You are on "+nice(U.sel)+", a future day (today is "+nice(tdy)+" in Chicago). Save this entry to "+nice(U.sel)+"?")){U.sel=tdy;render();return;}U.okFuture=U.sel;}var cur=DB.days[U.sel]||{},nd={},k;if(!cur.createdAt)nd.createdAt=Date.now();for(k in cur)nd[k]=cur[k];for(k in patch)nd[k]=patch[k];nd.updatedAt=Date.now();DB.days[U.sel]=nd;save();}
+function upd(patch){if(dayLocked())return false;var tdy=nowCT().iso;if(U.sel>tdy&&U.okFuture!==U.sel){if(!confirm("You are on "+nice(U.sel)+", a future day (today is "+nice(tdy)+" in Chicago). Save this entry to "+nice(U.sel)+"?")){U.sel=tdy;render();return;}U.okFuture=U.sel;}var cur=DB.days[U.sel]||{},nd={},k;if(!cur.createdAt)nd.createdAt=Date.now();for(k in cur)nd[k]=cur[k];for(k in patch)nd[k]=patch[k];nd.updatedAt=Date.now();var ft0=cp(cur.ft||{});for(k in patch)ft0[k]=nd.updatedAt;nd.ft=ft0;DB.days[U.sel]=nd;save();syMark(U.sel);}
 function stNow(){return day(U.sel);}
 function stamp(){var n=nowCT();return U.sel===n.iso?n.hm:null;}
 function cp(o){var r={};for(var k in o)r[k]=o[k];return r;}
@@ -899,6 +1071,18 @@ function pin(el){var se=el.closest('[id^="step-"]');if(se)U.open[U.sel+se.id.sli
 document.addEventListener("click",function(ev){
   var el=ev.target.closest("[data-a]");if(!el)return;var a=el.dataset.a,k=el.dataset.k,v=el.dataset.v,st=stNow();
   if(a==="noop")return;
+  if(a==="syncnow"){syncNow();return;}
+  if(a==="sytest"){syTest();return;}
+  if(a==="syforget"){if(confirm("Remove the sync token from this device? Your data stays here and in the repo.")){SY.token="";SY.status="";SY.err="";SY.testMsg="Token removed.";sySave();}render();return;}
+  if(a==="doneask"){U.doneSheet=true;render();return;}
+  if(a==="doneclose"){U.doneSheet=false;render();return;}
+  if(a==="donefix"){U.doneSheet=false;U.tab=STEP_TAB[k]||(k==="food"?"food":"train");if(k&&k!=="food"){U.open[U.sel+k]=true;U.focus=k;}render();window.scrollTo(0,0);if(U.focus)render();return;}
+  if(a==="donego"){markDone();return;}
+  if(a==="donesend"){openSend();return;}
+  if(a==="unlockday"){var dd=DB.days[U.sel];if(dd&&dd.doneAt&&confirm("Unlock "+nice(U.sel)+" to edit? It will no longer count as done until you mark it done again.")){var nd2=cp(dd);nd2.lastDoneAt=nd2.doneAt;nd2.doneAt=null;nd2.doneOpen=null;nd2.updatedAt=Date.now();var f3=cp(nd2.ft||{});f3.doneAt=f3.doneOpen=nd2.updatedAt;nd2.ft=f3;DB.days[U.sel]=nd2;save();syMark(U.sel);}U.lockMsg="";render();return;}
+  if(a==="lockclose"){U.lockMsg="";render();return;}
+  if(a==="recopen"){U.tab="more";U.focus="recovery";render();return;}
+  if(a.indexOf("rec")===0){var rr=recAction(a,el);if(rr==="async")return;if(rr){render();return;}}
   if(a!=="toggle")pin(el);
   if(a==="set"){var o={};o[k]=(k==="decision"&&st.decision===v)?null:v;upd(o);}
   else if(a==="pain"){var o2={};o2[k]=(st[k]===+v)?null:+v;upd(o2);}
@@ -910,15 +1094,19 @@ document.addEventListener("click",function(ev){
   else if(a==="goto"){U.tab=STEP_TAB[k]||"train";DB.meta.tab=U.tab;save();U.open[U.sel+k]=true;U.focus=k;window.scrollTo(0,0);}
   else if(a==="move"){var im=cp(st.itemMeal||{});im[k]=+v;upd({itemMeal:im});}
   else if(a==="xmove"){var xid=el.dataset.id;upd({extras:(st.extras||[]).map(function(x){if(x.id!==xid)return x;var y=cp(x);y.meal=+v;return y;})});}
+  else if(a==="swapmeals"&&dayLocked())return;
   else if(a==="swapmeals"){var Rs=C(U.sel),im2=cp(st.itemMeal||{}),mts=cp(st.mealTime||{}),mns=cp(st.mealNote||{}),tm=mts[1],tn=mns[1];Rs.lines.forEach(function(l){im2[l.id]=l.meal===1?2:1;});mts[1]=mts[2];mts[2]=tm;mns[1]=mns[2];mns[2]=tn;if(!mts[1])delete mts[1];if(!mts[2])delete mts[2];
     upd({itemMeal:im2,mealTime:mts,mealNote:mns,extras:(st.extras||[]).map(function(x){var y=cp(x);y.meal=x.meal===1?2:1;return y;})});
     var pl=phList(U.sel);Promise.all(pl.map(function(x){var y=cp(x);y.meal=(x.meal||1)===1?2:1;return phPut(y);})).then(function(){phLoad(U.sel);});}
   else if(a==="mtnow"){var mt3=cp(st.mealTime||{});mt3[k]=nowCT().hm;upd({mealTime:mt3});}
   else if(a==="mtclr"){var mt4=cp(st.mealTime||{});delete mt4[k];upd({mealTime:mt4});}
+  else if(a==="photo"&&dayLocked())return;
   else if(a==="photo"){U.photoMeal=+el.dataset.m;U.phMsg="";document.getElementById("photoFile").click();return;}
   else if(a==="phview"){U.phView=k;}
   else if(a==="phclose"){U.phView=null;}
+  else if(a==="phdel"&&dayLocked())return;
   else if(a==="phdel"){if(confirm("Delete this photo?")){var pd=phFind(k);phDel(k).then(function(){U.phView=null;phLoad(pd?pd.date:U.sel);});}return;}
+  else if(a==="phmove"&&dayLocked())return;
   else if(a==="phmove"){var pm=phFind(k);if(pm){var y2=cp(pm);y2.meal=(pm.meal||1)===1?2:1;phPut(y2).then(function(){U.phView=null;phLoad(pm.date);});}return;}
   else if(a==="shareph"){var fsx=phFiles(sumDates());if(fsx.length&&navigator.canShare&&navigator.canShare({files:fsx})){navigator.share({files:fsx}).then(function(){U.msg="Photos shared.";U.msgOk=true;render();},function(){});}else{U.msg="This browser can't share photos from the app. Attach them from your camera roll.";U.msgOk=false;render();}return;}
   else if(a==="settings"){U.settings=true;}
@@ -977,6 +1165,7 @@ document.addEventListener("input",function(ev){
   var el=ev.target;pin(el);
   if(el.dataset.f){var o={};o[el.dataset.f]=el.value;upd(o);render();}
   else if(el.dataset.u){U[el.dataset.u]=el.value;render();}
+  else if(el.dataset.sy){SY[el.dataset.sy]=el.value;SY.testMsg="";if(el.dataset.sy==="token"&&el.value.trim())SY.status="pending";sySave();render();}
   else if(el.dataset.s){setS(el.dataset.s,el.value);render();}
   else if(el.dataset.iq){var q1=num(el.value);if(q1>0){var qq1=cp(stNow().qty);qq1[el.dataset.iq]=Math.min(5000,q1);upd({qty:qq1});render();}}
   else if(el.dataset.raw){var rw=num(el.value),fac=+el.dataset.fac;if(rw>0&&fac>0){var qq2=cp(stNow().qty);qq2[el.dataset.raw]=Math.round(rw*fac);upd({qty:qq2});render();}}
@@ -988,7 +1177,7 @@ document.addEventListener("input",function(ev){
 document.addEventListener("focusout",function(ev){var t=ev.target;if(t&&t.dataset&&(t.dataset.iq||t.dataset.raw||t.dataset.xq||t.dataset.xc||t.dataset.xp))setTimeout(render,0);});
 document.getElementById("photoFile").addEventListener("change",function(ev){var fs=Array.prototype.slice.call(ev.target.files||[]),date=U.sel,meal=C(U.sel).pattern==="omad"?0:U.photoMeal;ev.target.value="";if(!fs.length)return;U.phMsg="Saving "+fs.length+" photo"+(fs.length>1?"s":"")+"…";render();
   fs.reduce(function(pr,f,i){return pr.then(function(){return compressImg(f).then(function(o){return toBuf(o.blob).then(function(buf){return phPut({id:"p"+Date.now()+"-"+i,date:date,meal:meal,t:Date.now()+i,buf:buf,type:"image/jpeg",w:o.w,h:o.h});});});});},Promise.resolve())
-  .then(function(){U.phMsg=fs.length+" photo"+(fs.length>1?"s":"")+" saved on this phone.";return phLoad(date);},function(){U.phMsg="Couldn't save that photo.";PH.err=PH.err||"";render();});});
+  .then(function(){U.phMsg=fs.length+" photo"+(fs.length>1?"s":"")+" saved on this phone.";syMark(date);return phLoad(date);},function(){U.phMsg="Couldn't save that photo.";PH.err=PH.err||"";render();});});
 document.addEventListener("change",function(ev){if(ev.target.dataset&&ev.target.dataset.s){setS(ev.target.dataset.s,ev.target.value);render();return;}if(ev.target.dataset&&ev.target.dataset.u){U[ev.target.dataset.u]=ev.target.value;render();return;}if(ev.target.id==="datepick"&&ev.target.value){U.sel=ev.target.value;U.sumText="";U.msg="";render();}});
 // reopened on a new day: jump to today
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){var n=nowCT();if(n.iso!==NOW.iso&&U.sel===NOW.iso)U.sel=n.iso;render();}});
@@ -997,6 +1186,12 @@ setInterval(function(){var ae=document.activeElement;if(document.visibilityState
   Promise.all(mv.map(function(x){return phReq("readonly",function(os){return os.index("date").getAll(x.from);}).then(function(list){return Promise.all((list||[]).map(function(r){r.date=x.to;return phPut(r);}));});}))
   .then(function(){DB.meta.photoMoves=[];save();PH.days={};render();},function(){});})();
 render();
+(function syncInit(){if(!DB.meta.moved&&DB.meta.repairLog&&DB.meta.repairLog.length&&LOAD.ok){DB.meta.moved={};DB.meta.repairLog.forEach(function(x){if(!DB.days[x.from])DB.meta.moved[x.from]=x.to;});}if(!syOn())return;(DB.meta.pendingSync||[]).forEach(function(d){SY.dirty[d]=Date.now();});if(DB.meta.pendingSync&&DB.meta.pendingSync.length){DB.meta.pendingSync=[];save();}sySave();syncNow({quiet:true});})();
+function syMaybe(){if(syOn()&&Date.now()-(SY.lastSync||0)>15000)syncNow({quiet:true});}
+window.addEventListener("focus",syMaybe);
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")syMaybe();});
+window.addEventListener("online",function(){if(syOn())syncNow({quiet:true});});
+setInterval(function(){if(syOn()&&Object.keys(SY.dirty).length&&!SYNC.busy)syncNow({quiet:true});},60000);
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
 </script>
 </body>
