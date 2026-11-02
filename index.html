@@ -40,6 +40,9 @@ input,textarea{font-family:inherit}
 .fld{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:12px;padding:2px 12px}
 .fld input{width:64px;background:transparent;border:none;outline:none;color:var(--text);font-size:18px;font-weight:700;padding:7px 0}
 .fld.w input{width:86px}
+.fld.ro{border-style:dashed;background:rgba(255,122,69,0.06)}
+.fld.ro input{color:var(--text)}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 84px);z-index:46;max-width:736px;margin:0 auto;padding:13px 16px;border-radius:14px;background:#13202a;font-size:15px;font-weight:700;display:flex;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,0.45)}
 .fld span{color:var(--dim);font-size:12px;font-weight:600}
 .inp{background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:12px;padding:9px 12px;color:var(--text);font-size:16px;outline:none}
 input::placeholder,textarea::placeholder{color:#4b5670}
@@ -193,7 +196,9 @@ var PM_EST={A:100,B:90,BL:70,none:0};
 var RACE_ISO="2026-11-15";
 var INFO={
  weigh:{title:"How to weigh in",body:["After the bathroom, before food, same scale every day.","Judge by the 7-day average, not one reading. Water and food swing the scale 1–3 lb. Once a day only.","Waist: tape on bare skin at belly-button level, level all the way round, snug not pressing, after a normal breath out."]},
- mob:{title:"{R} routine",body:["AM inside 5–6 AM and PM before bed: the stretches listed (2 × 4 each) and clamshells (10–15/side).","Strengthening Mon/Wed/Fri: abduction, adduction, prone extension, 8 reps (progress to 12, then +1 lb).","Stop any move that brings on pain."]},
+ mob:{title:"{R} routine",body:["One tap per round: AM (morning) and PM (evening). Yes = you did it, No = you skipped it. No per-exercise tracking.","Your usual stretches and strengthening, as agreed with your doctor. Stop any move that brings on pain."]},
+ strava:{title:"From Strava",body:["Turn on From Strava and this session's minutes, distance and active calories come from your Strava activity. You can't type over them while it's on.","Nalam adds each Strava activity to your day in the sync repo. It shows here on the next sync: open the app, or tap the sync pill.","Walks, runs and hikes count toward the morning session; other activity types count toward strength. Rewards and totals use the Strava numbers while it's on.","Until the activity arrives you'll see Waiting for Strava sync. Turn it off to type the numbers yourself."]},
+ painday:{title:"Pain today",body:["Your highest pain today, 0–10, anywhere. Log it any time in the evening; you don't have to wait until bed.","You can change it the next morning: go back one day with ‹. It stays editable even after Mark day done.","Any pain (1+) means tomorrow is an easy walk, not a walk-run."]},
  gate:{title:"The gate rule",body:["Walk-runs only after a fully pain-free (0) day, including during the stretches. Mild pain (1+) is not pain-free.","Any pain during or after a walk or walk-run = no walk-run next day, easy walk instead.","The ladder never skips or doubles a step, at least 1 day apart. The app moves you to the next step only after one is done. Any pain on a walk-run: stop jogging, walk home, tell your doctor.","Get seen promptly for limping, pain at rest or at night, swelling, warmth, or pain getting worse. Chest pain, fainting, trouble breathing: call 911."]},
  active:{title:"Where to find Active Calories",body:["iPhone Fitness app › Workouts › tap that session › Active Calories.","Not Total Calories (it includes what your body burns at rest) and not the Move ring (whole day).","Leave it blank and the app uses a calculated estimate (from your minutes if you enter them)."]},
  half:{title:"How the reward works",body:["The reward unlocks only when the workout is marked Done (or you enter its Active Calories). Skipped = no reward.","Tiers from workout Active Calories: under 200 = 10 g pumpkin seeds · 200–349 = seeds + 15 g peanuts · 350–500 = seeds + 25 g peanuts · over 500 = that plus carb fuel.","Watches tend to overestimate workout burn, and eating it all back erases the deficit, so the tiers are sized to roughly half. Weigh the reward and eat it with the meal, never as a snack after."]},
@@ -203,12 +208,12 @@ var INFO={
  rem:{title:"{P} with meals",body:["Set in Settings. Through the date you set, the app keeps 2 meals a day and reminds you to take it with each meal."]},
  race:{title:"Race day",body:["Up about 3 h before. Small tested carb breakfast 2–3 h before. Run-walk 4 min jog / 1 min walk from the start.","Pain: walk. Sharp or worsening: stop.","Add your race details in Settings."]},
  carb:{title:"Carb prep",body:["Before a walk-run or heavy upper-body day, add a 2nd date plus 150 g cooked rice or 150 g sweet potato to tonight's meal. The app turns this on automatically when tomorrow is a walk-run and today is pain-free.","Race eve (Sat Nov 14): plate + 250 g rice + 2nd date + 100 g sweet potato, about 1,960 cal (calculated). Nothing new, nothing fried."]},
- extras:{title:"Anything else you ate",body:["Log every bite that isn't on the plate: tap a preset or type it in. Values are estimates from typical food values. Change the amount any time.","Don't know the nutrition? Type just the name (grams or pieces optional). It shows NEEDS ESTIMATE, stays out of the totals, and Nalam estimates it from Send to Nalam. You can type the calories in later.","Extras count in the rings, the eaten totals and the day score. Over target? No make-up cuts tomorrow; just back on plan, never under 1,600."]},
+ extras:{title:"Anything else you ate",body:["Log every bite that isn't on the plate: tap a preset or type it in. Values are estimates from typical food values. Change the amount any time.","Don't know the nutrition? Type just the name (grams or pieces optional). It shows NEEDS ESTIMATE, stays out of the totals, and Nalam estimates it from your synced day. You can type the calories in later.","Extras count in the rings, the eaten totals and the day score. Over target? No make-up cuts tomorrow; just back on plan, never under 1,600."]},
  dur:{title:"Walk length in this phase",body:["Easy walks are 25–30 min in this phase. Under 20 is short but fine.","31–40 min: longer than plan, keep it 25–30. Over 40 min: too long for this phase; tell Nalam and keep tomorrow easy.","Pain after any walk still closes tomorrow's walk-run gate."]},
  omad:{title:"OMAD vs 2 meals",body:["Weekdays: OMAD, one sitting 4–6 PM. Weekends: same plate split into 2 meals, 12–6 PM.","The app warns when you log food outside the window (it records the time you tick an item)."]},
- score:{title:"Score, streaks and XP",body:["Day score = share of today's steps done: weigh-in, both {r} rounds, the session, the plate eaten, calories inside target, strength, bedtime pain logged.","80%+ = an on-plan day and keeps the streak. {R} streak counts days with both {r} rounds done or partial.","XP: 10 per step, up to 50 for the score, +20 calories on target, +20 protein hit, +15 both {r} rounds, −10 for each off-plan extra."]},
- save:{title:"Saving and Nalam",body:["Everything you enter saves on this phone the moment you type or tap, per day. Close and reopen: it's still there. Works offline.","Use it only from the Home Screen icon: Safari and the Home Screen app keep separate storage on iPhone.","Nalam can't see this phone. Once a day tap Send to Nalam (More tab) and paste it into Nalam's chat. Export a backup now and then (Data section).","Meal photos are compressed and kept on this phone only (not in backups). Share summary + photos attaches them when the phone allows; otherwise use Share photos only."]},
- pains:{title:"Pain points / fix this",body:["Anything the app can't handle, gets wrong or makes slow: write it here, in your own words. It saves per day.","It goes into the Send to Nalam summary, and Nalam fixes the app."]}
+ score:{title:"Score, streaks and XP",body:["Day score = share of today's steps done: weigh-in, both {r} rounds, the session, the plate eaten, calories inside target, strength, pain today logged.","80%+ = an on-plan day and keeps the streak. {R} streak counts days with both {r} rounds done or partial.","XP: 10 per step, up to 50 for the score, +20 calories on target, +20 protein hit, +15 both {r} rounds, −10 for each off-plan extra."]},
+ save:{title:"Saving and Nalam",body:["Everything you enter saves on this device the moment you type or tap, per day. Close and reopen: it's still there. Works offline.","With Sync on (⚙), each day goes to your private repo within seconds, and Nalam reads it from there. No copying or pasting needed. Mark day done syncs right away.","Safari and the Home Screen app keep separate storage on iPhone; Sync keeps them and your Mac in step.","Backup: copy summary (More tab) is only for when sync is off or failing."]},
+ pains:{title:"Pain points / fix this",body:["Anything the app can't handle, gets wrong or makes slow: write it here, in your own words. It saves with this day only; a new day starts empty.","Nalam reads it from sync and fixes the app. Once it's fixed, tap Fixed ✓ / clear: the note is archived with the day and the box empties."]}
 };
 // ===== helpers =====
 var DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -257,6 +262,13 @@ function extraLine(e){
   return {id:"x-"+e.id,name:e.name,amt:amt,cal:(e.calPer||0)*e.qty,p:(e.pPer||0)*e.qty,f:(e.fPer||0)*e.qty,c:(e.cPer||0)*e.qty,fib:0,meal:e.meal,tag:"EXTRA",kind:e.kind||"ok",t:e.t,unknown:!!e.unknown,custom:!!e.custom||/^c\d/.test(String(e.id))};
 }
 function rawOf(cooked,f){return Math.round(cooked/f/5)*5;}
+// ===== Strava (written into the day by Nalam, server side; the app only reads it) =====
+var AM_TYPES=/run|walk|hike/i;
+function stravaList(x){return Array.isArray(x)?x.filter(function(a){return a&&typeof a==="object";}):[];}
+function stravaSplit(x){var g={am:[],pm:[]};stravaList(x).forEach(function(a){(AM_TYPES.test(String(a.type||a.name||""))?g.am:g.pm).push(a);});
+  var sum=function(l){if(!l.length)return null;var o={n:l.length,minutes:0,distanceMi:0,activeCal:0,acts:l,hr:null};l.forEach(function(a){o.minutes+=num(a.minutes);o.distanceMi+=num(a.distanceMi);o.activeCal+=num(a.activeCal);});
+    o.minutes=Math.round(o.minutes);o.distanceMi=Math.round(o.distanceMi*100)/100;o.activeCal=Math.round(o.activeCal);var hr=l.filter(function(a){return num(a.avgHr)>0;});if(hr.length)o.hr=Math.round(hr.reduce(function(s2,a){return s2+num(a.avgHr);},0)/hr.length);return o;};
+  return {am:sum(g.am),pm:sum(g.pm),n:stravaList(x).length};}
 function tierOf(b){return b<=0?0:b<200?1:b<350?2:b<=500?3:4;}
 var TIER_TXT=["none (no workout done)","10 g pumpkin seeds","seeds + 15 g peanuts","seeds + 25 g peanuts","seeds + 25 g peanuts + carb fuel"];
 function durFb(min,wrLive){
@@ -280,7 +292,7 @@ if(!DB.meta)DB.meta={};
 if(LOAD.ok&&(!DB.v||DB.v<4)){DB.v=4;DB.meta.migratedV4=Date.now();}
 var saveOk=true;
 function hasActuals(r){if(!r)return false;var any=function(o){if(!o)return false;for(var k in o)if(o[k])return true;return false;};
-  return num(r.weight)>0||num(r.waist)>0||any(r.eaten)||any(r.marks)||(r.extras&&r.extras.length>0)||r.amStatus==="done"||r.pmStatus==="done"||num(r.amMin)>0||num(r.amBurn)>0||num(r.pmBurn)>0||has(r.bedPain)||has(r.walkPain)||has(r.dayPain)||!!(r.notes&&String(r.notes).trim())||any(r.mealTime)||any(r.mealNote);}
+  return stravaList(r.strava).length>0||num(r.weight)>0||num(r.waist)>0||any(r.eaten)||any(r.marks)||(r.extras&&r.extras.length>0)||r.amStatus==="done"||r.pmStatus==="done"||num(r.amMin)>0||num(r.amBurn)>0||num(r.pmBurn)>0||has(r.bedPain)||has(r.walkPain)||has(r.dayPain)||!!(r.notes&&String(r.notes).trim())||any(r.mealTime)||any(r.mealNote);}
 function mergeDay(dst,src){var out={},k,conflict=false;for(k in dst)out[k]=dst[k];
   for(k in src){var a=dst[k],b=src[k];
     if(k==="extras"){var ids={};(a||[]).forEach(function(x){ids[x.id]=1;});out.extras=(a||[]).concat((b||[]).filter(function(x){return !ids[x.id];}));}
@@ -365,14 +377,17 @@ function compute(iso){
   var amKind=isLadder&&!wrLive?"walk":plan.am;
   if(plan.am==="race")amKind=decision==="skip"?"rest":decision==="walk"?"racewalk":"race";
   var amStatus=st.amStatus||(plan.am==="rest"||amKind==="rest"?"skipped":"planned");
-  var amDone=amStatus==="done"||(num(st.amBurn)>0&&amStatus!=="skipped");
+  var sv=stravaSplit(st.strava),amSv=st.amStrava?sv.am:null,pmSv=st.pmStrava?sv.pm:null;
+  var amWatch=st.amStrava?(amSv?amSv.activeCal:0):num(st.amBurn),pmWatch=st.pmStrava?(pmSv?pmSv.activeCal:0):num(st.pmBurn);
+  var amSrc=st.amStrava?(amSv&&amSv.activeCal>0?"Strava":"estimate"):(amWatch>0?"watch":"estimate"),pmSrc=st.pmStrava?(pmSv&&pmSv.activeCal>0?"Strava":"estimate"):(pmWatch>0?"watch":"estimate");
+  var amDone=amStatus==="done"||(!!(amWatch>0||(amSv&&amSv.minutes>0))&&amStatus!=="skipped");
   var sk=setKeys(plan.pm),setsDone=sk.filter(function(k){return st.marks[k];}).length;
   var pmStatus=plan.pm==="none"?"skipped":(sk.length>0&&setsDone===sk.length?"done":(st.pmStatus||"planned"));
-  var pmDone=plan.pm!=="none"&&(pmStatus==="done"||(num(st.pmBurn)>0&&pmStatus!=="skipped"));
-  var mins=num(st.amMin);
+  var pmDone=plan.pm!=="none"&&(pmStatus==="done"||(!!(pmWatch>0||(pmSv&&pmSv.minutes>0))&&pmStatus!=="skipped"));
+  var mins=st.amStrava?(amSv?amSv.minutes:0):num(st.amMin),amDist=st.amStrava?(amSv?amSv.distanceMi:0):num(st.amDist);
   var amEst=mins>0?Math.round(mins*(PER_MIN[amKind]||4.5)):(AM_EST[amKind]||0);
   var pmEst=PM_EST[plan.pm]||0;
-  var amB=num(st.amBurn)>0?num(st.amBurn):amEst,pmB=num(st.pmBurn)>0?num(st.pmBurn):pmEst;
+  var amB=amWatch>0?amWatch:amEst,pmB=pmWatch>0?pmWatch:pmEst;
   var amBurn=amDone?amB:0,pmBurn=pmDone?pmB:0,burn=amBurn+pmBurn,tier=tierOf(burn);
   var potential=(amStatus!=="skipped"?amB:0)+(pmStatus!=="skipped"?pmB:0),potTier=tierOf(potential);
   var next=planFor(addDays(iso,1)),painToday=maxPain(st),raceEve=plan.special==="raceEve";
@@ -405,7 +420,7 @@ function compute(iso){
   var calHi=big?2000:wrDay?1800:1700;
   var carbHi=raceEve||tomorrow||tier===4?220:130;
   var amMob=mobEff(MOB.map(function(_,i){return "ah"+i;}),st.marks,st.amMob);
-  var mobStr=plan.mob!=="no"&&(w===1||w===3||w===5)?mobEff(MOBS.map(function(_,i){return "ahs"+i;}),st.marks,st.mobStr):null;
+  var mobStr=null; // v7: one Done yes/no per round; old strengthening marks stay stored, unused
   var pmMob=mobEff(MOB.map(function(_,i){return "ph"+i;}),st.marks,st.pmMob);
   var parts=[num(st.weight)>0?1:0,amMob.score];
   if(mobStr)parts.push(mobStr.score);
@@ -421,7 +436,7 @@ function compute(iso){
   var offPlan=xl.filter(function(l){
     if(l.kind==="sweet")return !((plan.special==="potluck"||plan.special==="race")&&sweets===1);
     return l.kind==="fried"||l.kind==="out"||(l.kind==="nut"&&tier===0);});
-  return {iso:iso,st:st,plan:plan,pattern:pattern,gatePain:gatePain,isLadder:isLadder,wrN:wrN,wrStep:wrStep,wrRepeat:wrRepeat,wrLive:wrLive,decision:decision,amKind:amKind,amStatus:amStatus,amDone:amDone,pmStatus:pmStatus,pmDone:pmDone,sk:sk,setsDone:setsDone,amEst:amEst,pmEst:pmEst,amBurn:amBurn,pmBurn:pmBurn,burn:burn,tier:tier,potTier:potTier,tomorrow:tomorrow,autoTomorrow:autoTomorrow,raceEve:raceEve,lines:active,xl:xl,extrasTot:extrasTot,planned:planned,eaten:eaten,plateEaten:plateEaten,platePlanned:platePlanned,calLo:calLo,calHi:calHi,carbHi:carbHi,amMob:amMob,mobStr:mobStr,pmMob:pmMob,score:score,painToday:painToday,mins:mins,offPlan:offPlan,unknown:unknown};
+  return {iso:iso,st:st,plan:plan,pattern:pattern,gatePain:gatePain,isLadder:isLadder,wrN:wrN,wrStep:wrStep,wrRepeat:wrRepeat,wrLive:wrLive,decision:decision,amKind:amKind,amStatus:amStatus,amDone:amDone,pmStatus:pmStatus,pmDone:pmDone,sk:sk,setsDone:setsDone,amEst:amEst,pmEst:pmEst,amBurn:amBurn,pmBurn:pmBurn,burn:burn,tier:tier,potTier:potTier,tomorrow:tomorrow,autoTomorrow:autoTomorrow,raceEve:raceEve,lines:active,xl:xl,extrasTot:extrasTot,planned:planned,eaten:eaten,plateEaten:plateEaten,platePlanned:platePlanned,calLo:calLo,calHi:calHi,carbHi:carbHi,amMob:amMob,mobStr:mobStr,pmMob:pmMob,score:score,painToday:painToday,mins:mins,amDist:amDist,offPlan:offPlan,unknown:unknown,sv:sv,amSv:amSv,pmSv:pmSv,amWatch:amWatch,pmWatch:pmWatch,amSrc:amSrc,pmSrc:pmSrc};
 }
 function sessionInfo(R){
   var p=R.plan;
@@ -435,7 +450,7 @@ function sessionInfo(R){
   if(p.am==="rest")return {name:"Rest or easy walk",rx:"20–25 min if you want it"};
   return {name:"Easy walk",rx:"25–30 min, easy. Not longer, even if it feels great."};
 }
-function mobLine(e,total){return e.s==="notyet"?e.n+" of "+total:e.s==="done"?"Done":e.s==="skipped"?"Skipped":"Partial · "+e.n+" of "+total;}
+function mobLine(e,total){return e.s==="done"?"Done":e.s==="skipped"?"Skipped":e.s==="partial"?"Partial":"Yes or no, one tap";}
 function flowMeta(R){
   var st=R.st,p=R.plan,out=[];
   out.push({key:"weigh",time:"5:00 AM",title:"Weigh-in",sub:"Before food, once",done:num(st.weight)>0});
@@ -448,7 +463,7 @@ function flowMeta(R){
   var mealNames=function(m){var n=R.lines.filter(function(l){return l.meal===m;}).map(function(l){return l.name;});return n.slice(0,4).join(", ")+(n.length>4?" +"+(n.length-4):"");};
   var mealDone=function(m){var ls=R.lines.filter(function(l){return m===0||l.meal===m;});return ls.length>0&&ls.every(function(l){return st.eaten[l.id];});};
   var strT=p.pm==="A"?"Upper A · Push":p.pm==="B"?"Upper B · Pull":"Upper B · Pull (light)";
-  var strength={key:"pm",title:strT,sub:R.setsDone+" of "+R.sk.length+" sets · 20–30 min · upper body",done:R.pmDone};
+  var strength={key:"pm",title:strT,sub:(R.pmSv?"From Strava · "+R.pmSv.minutes+" min · "+fmt(R.pmSv.activeCal)+" active cal":R.st.pmStrava?"From Strava · waiting for sync":R.setsDone+" of "+R.sk.length+" sets · 20–30 min · upper body"),done:R.pmDone};
   if(R.pattern==="two"){
     out.push({key:"m1",time:mtime(1,"12:00 PM"),title:"Meal 1",sub:mealNames(1)||"Nothing planned here",done:mealDone(1)});
     if(p.pm!=="none"){strength.time="Before meal 2";out.push(strength);}
@@ -457,7 +472,8 @@ function flowMeta(R){
     if(p.pm!=="none"){strength.time="3:30 PM";out.push(strength);}
     out.push({key:"omad",time:mtime(0,"4–6 PM"),title:"OMAD",sub:"The whole plate in one sitting, 25–30 min",done:mealDone(0)});
   }
-  out.push({key:"pmmob",time:"Bedtime",title:RL()+" · PM + pain check",sub:mobLine(R.pmMob,MOB.length)+" · then 7+ hours of sleep",done:R.pmMob.s!=="notyet"&&has(st.bedPain)});
+  out.push({key:"pmmob",time:"Evening",title:RL()+" · PM",sub:mobLine(R.pmMob,MOB.length)+" · then 7+ hours of sleep",done:R.pmMob.s!=="notyet"});
+  out.push({key:"pain",time:"Evening · any time",title:"Pain today",sub:has(st.bedPain)?"Logged: "+st.bedPain+"/10 · editable tomorrow morning":"Log it this evening; change it tomorrow if needed",done:has(st.bedPain)});
   return out;
 }
 // ===== anti-deviation coach =====
@@ -486,17 +502,17 @@ function warnings(R,today,now){
   var outside=times.filter(function(t){var m=tmins(t);return m<lo||m>hi;});
   var uniq=outside.filter(function(t,i){return outside.indexOf(t)===i;}).sort();
   if(outside.length&&p.special!=="race")W.push({lvl:omad&&w>=1&&w<=5?"red":"amber",t:omad?"OUTSIDE OMAD WINDOW":"OUTSIDE MEAL WINDOW",m:outside.length+" item"+(outside.length>1?"s":"")+" logged at "+uniq.map(hm12).join(", ")+". Window is "+(omad?"4–6 PM":"12–6 PM")+". Water or black coffee until then.",fix:{a:"goto",k:omad?"omad":"m1",l:"Set the real time eaten"}});
-  if(R.unknown.length)W.push({lvl:"info",t:R.unknown.length+" ITEM"+(R.unknown.length>1?"S":"")+" NEED AN ESTIMATE",m:R.unknown.map(function(l){return l.name;}).join(", ")+": no nutrition entered, so they're not in the totals yet. Add a photo; Nalam estimates them from Send to Nalam."});
+  if(R.unknown.length)W.push({lvl:"info",t:R.unknown.length+" ITEM"+(R.unknown.length>1?"S":"")+" NEED AN ESTIMATE",m:R.unknown.map(function(l){return l.name;}).join(", ")+": no nutrition entered, so they're not in the totals yet. Add a photo; Nalam estimates them from your synced day."});
   if(isToday){
     if(now.mins>=18*60&&R.eaten.p<140&&R.eaten.cal>0)W.push({lvl:"amber",t:"PROTEIN SHORT",m:fmt(140-R.eaten.p)+" g short of 140 g. Add 50 g chicken (~16 g), 2 egg whites (~7 g) or a whey scoop (~24 g) with the meal."});
     if(now.mins>=20*60&&R.eaten.cal>0&&R.eaten.cal<1600)W.push({lvl:"amber",t:"UNDER THE FLOOR",m:"Only "+fmt(R.eaten.cal)+" cal so far. Never under 1,600: finish the plate or the top-ups."});
-    if(now.mins>=8*60&&R.amMob.s==="notyet")W.push({lvl:"amber",t:"AM "+RL().toUpperCase()+" NOT LOGGED",m:"Do the AM "+RL().toLowerCase()+" routine (or tick it if done). It comes first."});
-    if(now.mins>=22*60&&R.pmMob.s==="notyet")W.push({lvl:"amber",t:"PM "+RL().toUpperCase()+" DUE",m:RL()+" routine before bed, then the bedtime pain check."});
+    if(now.mins>=8*60&&R.amMob.s==="notyet")W.push({lvl:"info",t:"AM "+RL().toUpperCase()+" NOT LOGGED",m:"Tap Yes or No for the AM round."});
+    if(now.mins>=20*60&&!has(st.bedPain))W.push({lvl:"info",t:"PAIN TODAY NOT LOGGED",m:"Log today's pain (0–10) any time this evening. It decides tomorrow's session."});
     if(now.mins>=7*60&&num(st.weight)<=0)W.push({lvl:"info",t:"NO WEIGH-IN",m:"Weigh in before food. Once, then judge by the 7-day average."});
   }
-  if(R.amMob.s==="skipped"||R.pmMob.s==="skipped")W.push({lvl:"amber",t:RL().toUpperCase()+" SESSION SKIPPED",m:"Don't miss two in a row. The next round is the most important one."});
+  if(R.amMob.s==="skipped"&&R.pmMob.s==="skipped")W.push({lvl:"info",t:RL().toUpperCase()+" SKIPPED TODAY",m:"Both rounds skipped. Fine on a day you feel good; stop and rest if anything hurts."});
   var yd=addDays(R.iso,-1);
-  if(DB.days[yd]){var Y=C(yd);if(Y.pmMob.s==="notyet"||Y.pmMob.s==="skipped")W.push({lvl:"amber",t:"MISSED YESTERDAY'S PM "+RL().toUpperCase(),m:"Yesterday's bedtime "+RL().toLowerCase()+" round isn't logged. Don't let it become two."});}
+  if(DB.days[yd]&&!has(DB.days[yd].bedPain)&&isToday)W.push({lvl:"info",t:"YESTERDAY'S PAIN NOT LOGGED",m:"Go back one day (‹) and log Pain today for "+nice(yd)+". It sets today's gate.",fix:{a:"shift",v:-1,l:"Go to "+nice(yd)}});
   if(p.pm!=="none"&&st.pmStatus==="skipped")W.push({lvl:"info",t:"STRENGTH SKIPPED",m:"No strength = its share of the reward is gone. Plate stays the same."});
   if(R.pattern==="omad"&&remOn(R.iso)&&S.remMeals)W.push({lvl:"amber",t:(S.remLabel+" needs 2 meals").toUpperCase(),m:"Through "+nice(S.remUntil)+", take it with each meal. Switch to 2 meals."});
   return W;
@@ -555,6 +571,14 @@ function ib(k){return '<button class="ib" data-a="info" data-k="'+k+'" aria-labe
 function bar(value,lo,hi,max,c){var pct=function(v){return Math.max(0,Math.min(100,v/max*100));};return '<div class="bar"><div style="left:'+pct(lo)+'%;width:'+(pct(hi)-pct(lo))+'%;background:rgba(255,255,255,0.12)"></div><div style="left:0;width:'+pct(value)+'%;border-radius:4px;background:'+c+'"></div></div>';}
 function stat(v,l,c){return '<div class="stat"><b style="color:'+c+'">'+esc(v)+'</b><small>'+esc(l)+'</small></div>';}
 function kv(k,v,c){return '<span class="kv"><i style="background:'+c+';box-shadow:0 0 8px '+c+'"></i><span style="color:'+K.dim+'">'+esc(k)+'</span><b>'+esc(v)+'</b></span>';}
+function ynSeg(value,k){return seg([["done","✓ Yes, done"],["skipped","No"]],value==="done"||value==="partial"?"done":value==="skipped"?"skipped":"",{a:"set",k:k});}
+function stravaToggle(st,k){return '<div class="row sb" style="margin-top:12px">'+togl(!!st[k],"From Strava",{a:"strava",k:k},K.ember,true)+ib("strava")+'</div>';}
+function roField(id,value,unit,wide){return '<label class="fld ro'+(wide?" w":"")+'"><input id="'+id+'" type="text" value="'+esc(value)+'" readonly tabindex="-1" aria-readonly="true"><span>'+esc(unit)+'</span></label>';}
+function stravaBox(sv,key,est){
+  if(!sv)return '<div class="warn" id="svwait-'+key+'" style="margin-top:10px;border-color:'+K.ember+'77;background:'+K.ember+'12"><span>⏳</span><div><b style="color:'+K.ember+'">WAITING FOR STRAVA SYNC</b><div>Save the activity in Strava. Nalam adds it to this day and it shows here on the next sync. Meanwhile the reward uses the estimate ('+fmt(est)+' cal).</div></div></div>';
+  var h='<div class="row" id="sv-'+key+'" style="margin-top:12px;gap:10px">'+roField("sv-"+key+"-min",sv.minutes,"min")+(key==="am"?roField("sv-"+key+"-dist",sv.distanceMi,"mi"):"")+roField("sv-"+key+"-cal",sv.activeCal>0?sv.activeCal:"","active cal",true)+'<span class="dim">'+(sv.activeCal>0?"From Strava":"No calories in Strava: estimate "+fmt(est)+" cal")+(sv.hr?" · avg HR "+sv.hr:"")+'</span></div>';
+  h+='<div class="dim" style="margin-top:6px">'+sv.acts.map(function(a){var t=Date.parse(a.start||"");var c=isFinite(t)?ctAt(t):null;return '🟧 '+esc(a.name||a.type||"Activity")+(c?" · "+hm12((c.h<10?"0":"")+c.h+":"+(c.m<10?"0":"")+c.m):"")+" · "+esc(Math.round(num(a.minutes)))+" min"+(num(a.distanceMi)>0?" · "+esc(num(a.distanceMi).toFixed(2))+" mi":"");}).join("<br>")+'</div>';
+  return h;}
 function mobSeg(value,k){return seg([["notyet","Not yet"],["done","Done"],["partial","Partial"],["skipped","Skipped"]],value,{a:"set",k:k});}
 function sbtn(lbl,a,extra){return '<button class="sbtn"'+attrs(a)+(extra?' style="'+extra+'"':'')+'>'+lbl+'</button>';}
 // ===== sections =====
@@ -590,7 +614,7 @@ function mealCard(R,meal){
   if(meal!==1){
     var rewardTxt=R.tier===0?(R.potTier>0?"locked · finish the workout to unlock "+TIER_TXT[R.potTier]+" (est.)":TIER_TXT[0]):TIER_TXT[R.tier];
     h+='<div style="margin-top:14px;padding:14px;border-radius:16px;background:rgba(255,122,69,0.06);border:1px solid rgba(255,122,69,0.3)"><div class="row sb"><span style="font-weight:800;font-size:14px">'+(R.tier>0?"🏆 Reward earned: ":"🔒 Reward: ")+esc(rewardTxt)+'</span><span class="row">'+ib("half")+ib("peanut")+'</span></div>'+
-      '<div class="dim" style="margin-top:4px">'+(R.tier>0?"From "+fmt(R.burn)+" active cal done today ("+(num(st.amBurn)>0||num(st.pmBurn)>0?"watch":"estimate")+"). Weigh it, eat it with the meal.":"Mark the walk or strength Done, or enter its Active Calories.")+'</div>'+
+      '<div class="dim" style="margin-top:4px">'+(R.tier>0?"From "+fmt(R.burn)+" active cal done today ("+(R.amSrc==="Strava"||R.pmSrc==="Strava"?"Strava":R.amSrc==="watch"||R.pmSrc==="watch"?"watch":"estimate")+"). Weigh it, eat it with the meal.":"Mark the walk or strength Done, or enter its Active Calories.")+'</div>'+
       (R.tier===4?'<div style="margin-top:10px">'+seg([["rice","Fuel: 150 g rice"],["date","Fuel: 2nd date"]],st.fuel,{a:"set",k:"fuel"})+'</div>':'');
     if(!R.raceEve){
       h+='<div style="margin-top:12px"><div class="row sb">'+togl(R.tomorrow,"Carb prep: tomorrow is a walk-run or heavy day",{a:"tomorrow"},K.violet)+ib("carb")+'</div>'+
@@ -621,7 +645,7 @@ function quickAdd(R,meal,mealKey){
       '<input id="u-dName" class="inp" data-u="dName" value="'+esc(U.dName)+'" placeholder="Food name, e.g. 2 dosa + chutney" style="flex:1 1 100%;min-width:0" autocomplete="off">'+
       [['dG','grams'],['dN','pieces'],['dCal','cal'],['dP','protein g'],['dF','fat g'],['dC','carb g']].map(function(a){return '<input id="u-'+a[0]+'" class="inp" type="text" inputmode="decimal" data-u="'+a[0]+'" value="'+esc(U[a[0]])+'" placeholder="'+a[1]+' (opt.)" style="flex:1 1 30%;min-width:0">';}).join("")+
       '<button class="btn" id="customAdd" data-a="custom" data-m="'+meal+'"'+(ok?'':' disabled')+' style="flex:1 1 100%;min-height:46px">'+(ok&&!(num(U.dCal)>0)?"Add · Nalam estimates it":"Add")+'</button></div>'+
-      '<div class="dim" style="margin-top:6px">No nutrition? Leave the numbers blank. It shows as NEEDS ESTIMATE (not in the totals yet) and goes into Send to Nalam. Add a 📷 photo of the plate to help.</div>'+
+      '<div class="dim" style="margin-top:6px">No nutrition? Leave the numbers blank. It shows as NEEDS ESTIMATE (not in the totals yet); Nalam sees it through sync. Add a 📷 photo of the plate to help.</div>'+
       '<div class="lbl" style="margin:14px 0 8px">One-tap presets (estimates)</div><div class="row" style="margin-bottom:8px"><span class="dim">Amount (g or pieces, optional)</span><label class="fld"><input id="u-presetQty" type="text" inputmode="decimal" data-u="presetQty" value="'+esc(U.presetQty)+'" placeholder="auto"><span>g / pcs</span></label></div><div class="row">';
     PRESETS.forEach(function(p){var bad=p.kind!=="ok";h+='<button class="togl" data-a="preset" data-k="'+p.key+'" data-m="'+meal+'" style="color:'+(bad?K.amber:K.text)+';min-height:44px">+ '+esc(p.name)+' · '+(p.unit==="g"?p.calPer+" cal/g":"~"+p.calPer+" each")+'</button>';});
     h+='</div><div class="dim" style="margin-top:6px">Peanuts in shell: one handful ≈ 30 g in shell ≈ 20 g nuts ≈ 120 cal (estimate). Sweet ≈ 150, restaurant meal ≈ 900 (rough estimates; edit amounts). Amber = off-plan.</div></div>';
@@ -665,13 +689,12 @@ function stepBody(key,R){
     var sw0=num(S.startWeight),gw=num(S.goalWeight),cw=num(S.checkpointWeight);
     if(w>0)h+='<div class="row" style="gap:10px;margin-top:12px">'+(sw0>0?stat((w-sw0>0?"+":"")+(w-sw0).toFixed(1)+" lb","vs start",w<=sw0?K.lime:K.amber):'')+stat(wa.avg7?wa.avg7.toFixed(1)+" lb":"–","7-day avg · "+wa.n7+" day"+(wa.n7===1?"":"s"),wa.avg7&&cw>0&&wa.avg7<cw?K.lime:K.teal)+(gw>0?stat((w-gw).toFixed(1)+" lb","to goal",K.violet):'')+'</div>';
   } else if(key==="ammob"){
-    h+='<div class="row">'+MOB.map(function(x,i){return togl(!!st.marks["ah"+i],x,{a:"mark",k:"ah"+i});}).join("")+ib("mob")+'</div><div style="margin-top:10px">'+mobSeg(R.amMob.s,"amMob")+'</div>';
-    if(R.mobStr)h+='<div style="margin-top:14px"><div class="lbl" style="margin-bottom:8px">Strengthening · Mon/Wed/Fri'+""+'</div><div class="row">'+MOBS.map(function(x,i){return togl(!!st.marks["ahs"+i],x,{a:"mark",k:"ahs"+i},K.violet);}).join("")+'</div><div style="margin-top:10px">'+mobSeg(R.mobStr.s,"mobStr")+'</div></div>';
-    h+='<div class="lbl" style="margin:14px 0 8px">Any pain during the stretches or the day (0–10)</div>'+pain(st.dayPain,"dayPain");
+    h+='<div class="row sb"><span class="lbl">AM round done?</span>'+ib("mob")+'</div><div style="margin-top:8px" id="yn-amMob">'+ynSeg(R.amMob.s,"amMob")+'</div>';
+    h+='<div class="lbl" style="margin:14px 0 8px">Any pain this morning (0–10)</div>'+pain(st.dayPain,"dayPain");
   } else if(key==="gate"){
     var gp=R.gatePain,c=R.wrLive?K.lime:K.amber;
     h+='<div class="row sb" style="margin-bottom:8px"><span class="lbl">Yesterday\'s highest pain (0–10)</span>'+ib("gate")+'</div>'+pain(gp,"gatePain")+
-      '<div style="margin-top:12px;padding:14px;border-radius:16px;border:1px solid '+c+'88;background:'+c+'14"><div style="color:'+c+';font-weight:800;font-size:12px;letter-spacing:.12em">'+(R.wrLive?"GATE OPEN":!has(gp)?"LOG YESTERDAY'S PAIN":"GATE CLOSED")+'</div><div style="font-weight:700;font-size:16px;margin-top:4px">'+(R.wrLive?esc(R.wrStep.n)+" is on":"Easy walk 25–30 min instead")+'</div><div class="muted" style="margin-top:2px">'+(R.wrLive?esc(R.wrStep.rx):"Walk-runs need a fully pain-free (0) day first. "+esc(R.wrStep.n)+" waits for the next pain-free day.")+'</div><div class="dim" style="margin-top:6px">Ladder: '+R.wrN+' of 5 walk-runs done before today · auto-filled from yesterday\'s pain logs (walk, day, bedtime); tap to override</div></div>';
+      '<div style="margin-top:12px;padding:14px;border-radius:16px;border:1px solid '+c+'88;background:'+c+'14"><div style="color:'+c+';font-weight:800;font-size:12px;letter-spacing:.12em">'+(R.wrLive?"GATE OPEN":!has(gp)?"LOG YESTERDAY'S PAIN":"GATE CLOSED")+'</div><div style="font-weight:700;font-size:16px;margin-top:4px">'+(R.wrLive?esc(R.wrStep.n)+" is on":"Easy walk 25–30 min instead")+'</div><div class="muted" style="margin-top:2px">'+(R.wrLive?esc(R.wrStep.rx):"Walk-runs need a fully pain-free (0) day first. "+esc(R.wrStep.n)+" waits for the next pain-free day.")+'</div><div class="dim" style="margin-top:6px">Ladder: '+R.wrN+' of 5 walk-runs done before today · auto-filled from yesterday\'s pain logs (walk, morning, pain today); tap to override</div></div>';
   } else if(key==="decide"){
     var r12=C("2026-11-12"),go=!!DB.days["2026-11-12"]&&r12.wrLive&&r12.amDone&&r12.painToday===0&&R.painToday===0;
     h+='<div class="muted" style="margin-bottom:10px">GO run-walk only if Walk-run 5 and the day after were pain-free and you feel ready. Otherwise walk the course or skip.</div>'+
@@ -680,21 +703,28 @@ function stepBody(key,R){
   } else if(key==="am"){
     var fb=p.am==="race"?null:durFb(R.mins,R.wrLive);
     if(p.am==="race")h+='<div class="row muted" style="margin-bottom:10px">Pain: walk. Sharp or worsening: stop. '+ib("race")+'</div>';
-    h+='<div class="row sb">'+seg([["planned","Planned"],["done","Done"],["skipped",p.am==="rest"?"Rested":"Skipped"]],R.amStatus,{a:"set",k:"amStatus"})+'<span class="row">'+ib("dur")+ib("active")+'</span></div>';
-    if(R.amStatus!=="skipped")h+='<div class="row" style="margin-top:12px;gap:10px">'+field("amMin",st.amMin,"min","min")+field("amDist",st.amDist,"dist","mi (opt.)")+field("amBurn",st.amBurn,String(Math.round(R.amEst)),"active cal",true)+'<span class="dim">'+(num(st.amBurn)>0?"Active cal from your watch":"Blank = estimate "+Math.round(R.amEst)+" cal")+'</span></div>';
+    h+='<div class="row sb">'+seg([["planned","Planned"],["done","Done"],["skipped",p.am==="rest"?"Rested":"Skipped"]],R.amStatus==="planned"&&R.amDone?"done":R.amStatus,{a:"set",k:"amStatus"})+'<span class="row">'+ib("dur")+ib("active")+'</span></div>';
+    if(R.amStatus!=="skipped"){h+=stravaToggle(st,"amStrava");
+      if(st.amStrava)h+=stravaBox(R.amSv,"am",R.amEst);
+      else h+='<div class="row" style="margin-top:12px;gap:10px">'+field("amMin",st.amMin,"min","min")+field("amDist",st.amDist,"dist","mi (opt.)")+field("amBurn",st.amBurn,String(Math.round(R.amEst)),"active cal",true)+'<span class="dim">'+(num(st.amBurn)>0?"Active cal from your watch":"Blank = estimate "+Math.round(R.amEst)+" cal")+'</span></div>';}
     if(fb&&R.amStatus!=="skipped")h+='<div style="margin-top:10px;padding:9px 12px;border-radius:12px;border:1px solid '+fb.c+'88;background:'+fb.c+'14;color:'+fb.c+';font-size:13px;font-weight:700">'+R.mins+' min · '+fb.t+'</div>';
-    if(R.amStatus==="done"){h+='<div style="margin-top:14px"><div class="lbl" style="margin-bottom:8px">Pain right after (0–10)</div>'+pain(st.walkPain,"walkPain")+'</div>';
+    if(R.amDone){h+='<div style="margin-top:14px"><div class="lbl" style="margin-bottom:8px">Pain right after (0–10)</div>'+pain(st.walkPain,"walkPain")+'</div>';
       if(has(st.walkPain))h+='<div style="margin-top:10px;font-size:13px;font-weight:600;color:'+(st.walkPain>0?K.amber:K.lime)+'">'+(st.walkPain>0?"Pain logged: no walk-run tomorrow, easy walk instead."+(st.walkPain>=3?" Stop and rest; if it persists, contact your doctor.":" Tell Nalam tonight.")+(R.mins>30?" The longer walk may be part of it; keep the next one 25–30 min.":""):"Pain-free. Keep it that way through bedtime.")+'</div>';}
   } else if(key==="pm"){
     (STR[p.pm]||[]).forEach(function(e,i){h+='<div class="row" style="margin-bottom:8px"><span style="font-weight:600;font-size:14px;flex:1 1 100%">'+esc(e.name)+'</span>';for(var j=0;j<e.sets;j++)h+=togl(!!st.marks["set"+i+"-"+j],e.rep,{a:"mark",k:"set"+i+"-"+j},K.ember,true);h+='</div>';});
-    h+='<div class="dim" style="margin-bottom:10px">Rest 60 s between sets. Plank only if pain-free.</div><div class="row sb">'+seg([["planned","Planned"],["done","Done"],["skipped","Skipped"]],R.pmStatus,{a:"set",k:"pmStatus"})+ib("active")+'</div>';
-    if(R.pmStatus!=="skipped")h+='<div class="row" style="margin-top:12px;gap:12px">'+field("pmBurn",st.pmBurn,String(R.pmEst),"active cal",true)+'<span class="dim">'+(num(st.pmBurn)>0?"From your watch":"Blank = estimate "+R.pmEst+" cal")+'</span></div>';
+    h+='<div class="dim" style="margin-bottom:10px">Rest 60 s between sets. Plank only if pain-free.</div><div class="row sb">'+seg([["planned","Planned"],["done","Done"],["skipped","Skipped"]],R.pmStatus==="planned"&&R.pmDone?"done":R.pmStatus,{a:"set",k:"pmStatus"})+ib("active")+'</div>';
+    if(R.pmStatus!=="skipped"){h+=stravaToggle(st,"pmStrava");
+      if(st.pmStrava)h+=stravaBox(R.pmSv,"pm",R.pmEst);
+      else h+='<div class="row" style="margin-top:12px;gap:12px">'+field("pmBurn",st.pmBurn,String(R.pmEst),"active cal",true)+'<span class="dim">'+(num(st.pmBurn)>0?"From your watch":"Blank = estimate "+R.pmEst+" cal")+'</span></div>';}
     else h+='<div style="margin-top:10px;font-size:12px;color:'+K.amber+'">Skipped: its share of the reward is removed.</div>';
   } else if(key==="m1")h=mealCard(R,1);
   else if(key==="m2")h=mealCard(R,2);
   else if(key==="omad")h=mealCard(R,0);
   else if(key==="pmmob"){
-    h+='<div class="row">'+MOB.map(function(x,i){return togl(!!st.marks["ph"+i],x,{a:"mark",k:"ph"+i});}).join("")+ib("mob")+'</div><div style="margin-top:10px">'+mobSeg(R.pmMob.s,"pmMob")+'</div><div class="lbl" style="margin:14px 0 8px">Bedtime pain (0–10)</div>'+pain(st.bedPain,"bedPain");
+    h+='<div class="row sb"><span class="lbl">PM round done?</span>'+ib("mob")+'</div><div style="margin-top:8px" id="yn-pmMob">'+ynSeg(R.pmMob.s,"pmMob")+'</div>';
+  }
+  else if(key==="pain"){
+    h+='<div class="row sb"><span class="lbl" id="painTodayLbl">Pain today (0–10)</span>'+ib("painday")+'</div><div class="dim" style="margin:4px 0 8px">Log it any time this evening, no need to wait for bed. You can change it tomorrow morning: tap ‹ to come back to this day'+(st.doneAt?' (it stays editable after Mark day done)':'')+'.</div>'+pain(st.bedPain,"bedPain");
     if(has(st.bedPain)){var free=R.painToday===0;h+='<div style="margin-top:10px;font-size:13px;font-weight:600;color:'+(free?K.lime:K.amber)+'">'+(free?"Pain-free day. Tomorrow's gate opens if it's a ladder day.":"Pain logged today: tomorrow is an easy walk, not a walk-run.")+'</div>';}
   }
   return h;
@@ -702,7 +732,7 @@ function stepBody(key,R){
 function daySummary(iso){
   var R=C(iso),st=R.st,p=R.plan,si=sessionInfo(R),idx=PLANS.findIndex(function(x){return x.iso===iso;});
   var mt=st.mealTime||{},mn=st.mealNote||{};
-  var hw=function(e){return e.s==="notyet"?"not logged":e.s==="partial"?"partial ("+e.n+"/"+MOB.length+")":e.s;};
+  var hw=function(e){return e.s==="notyet"?"not logged":e.s==="skipped"?"no":e.s==="partial"?"partial":"yes";};
   var ms=function(m,n){var ls=R.lines.filter(function(l){return m===0||l.meal===m;});return n+(mt[m]?" at "+hm12(mt[m]):" (time not set)")+" "+ls.filter(function(l){return st.eaten[l.id];}).length+"/"+ls.length+" items eaten"+(mn[m]&&mn[m].trim()?' (his note: "'+mn[m].trim()+'")':"");};
   var changed=R.lines.filter(function(l){return l.def&&l.qty!==l.def.base;}).map(function(l){return l.name+" "+l.amt;});
   var moved=R.pattern==="two"?R.lines.filter(function(l){return l.moved;}).map(function(l){return l.name+" to Meal "+l.meal;}):[];
@@ -710,11 +740,11 @@ function daySummary(iso){
   if(st.doneAt)s.push("DAY DONE ✓ (marked "+new Date(st.doneAt).toLocaleString("en-US",{timeZone:"America/Chicago",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" CT"+(st.doneOpen&&st.doneOpen.length?"; finished anyway with open: "+st.doneOpen.join(", "):"")+").");
   s.push("Nalam Daily Fuel · "+nice(iso)+" ("+(idx>=0?(idx===14?"race day":"Day "+(idx+1)+" of 15"):"after the race")+").");
   s.push("Weight "+(num(st.weight)>0?st.weight+" lb":"not logged")+(num(st.waist)>0?", waist "+st.waist+" in":"")+".");
-  s.push(RL()+" AM: "+hw(R.amMob)+(R.mobStr?"; strengthening: "+hw(R.mobStr):"")+". Day pain: "+(has(st.dayPain)?st.dayPain:"not logged")+".");
+  s.push(RL()+" AM: "+hw(R.amMob)+". Morning pain: "+(has(st.dayPain)?st.dayPain:"not logged")+".");
   if(R.isLadder)s.push("Gate pain (yesterday): "+(has(R.gatePain)?R.gatePain:"not logged")+" → "+(R.wrLive?R.wrStep.n:"easy walk")+".");
   if(p.special==="decision")s.push("Race decision: "+(st.decision||"not decided")+".");
-  s.push(si.name+": "+R.amStatus+(R.mins>0?", "+R.mins+" min":"")+(num(st.amDist)>0?", "+st.amDist+" mi":"")+(R.amStatus!=="skipped"?", "+fmt(num(st.amBurn)>0?num(st.amBurn):R.amEst)+" active cal ("+(num(st.amBurn)>0?"watch":"estimate")+")":"")+(has(st.walkPain)?", pain after "+st.walkPain:"")+".");
-  if(p.pm!=="none")s.push("Strength "+(p.pm==="A"?"Upper A":"Upper B")+": "+R.pmStatus+" ("+R.setsDone+"/"+R.sk.length+" sets)"+(R.pmStatus!=="skipped"?", "+fmt(num(st.pmBurn)>0?num(st.pmBurn):R.pmEst)+" active cal ("+(num(st.pmBurn)>0?"watch":"estimate")+")":"")+".");
+  s.push(si.name+": "+(R.amDone?"done":R.amStatus)+(st.amStrava?" (from Strava"+(R.amSv?"":", waiting for sync")+")":"")+(R.mins>0?", "+R.mins+" min":"")+(R.amDist>0?", "+R.amDist+" mi":"")+(R.amStatus!=="skipped"?", "+fmt(R.amWatch>0?R.amWatch:R.amEst)+" active cal ("+R.amSrc+")":"")+(has(st.walkPain)?", pain after "+st.walkPain:"")+".");
+  if(p.pm!=="none")s.push("Strength "+(p.pm==="A"?"Upper A":"Upper B")+": "+(R.pmDone?"done":R.pmStatus)+" ("+R.setsDone+"/"+R.sk.length+" sets"+(st.pmStrava?", from Strava"+(R.pmSv?" "+R.pmSv.minutes+" min":", waiting for sync"):"")+")"+(R.pmStatus!=="skipped"?", "+fmt(R.pmWatch>0?R.pmWatch:R.pmEst)+" active cal ("+R.pmSrc+")":"")+".");
   s.push("Meals ("+(R.pattern==="two"?"2 meals":"OMAD")+"): "+(R.pattern==="two"?ms(1,"Meal 1")+"; "+ms(2,"Meal 2"):ms(0,"OMAD"))+(st.swap!=="chicken"?", protein "+st.swap:"")+(changed.length?"; changed portions: "+changed.join(", "):"")+(moved.length?"; moved: "+moved.join(", "):"")+".");
   s.push("Reward: "+(R.tier?TIER_TXT[R.tier]:"none")+". Carb prep: "+(R.raceEve?"race eve":R.tomorrow?"yes ("+(st.carb==="sp"?"sweet potato":"rice")+")":"no")+".");
   var known=R.xl.filter(function(l){return !l.unknown;});
@@ -723,10 +753,10 @@ function daySummary(iso){
   var ph=phList(iso);
   if(ph.length){var c1=ph.filter(function(x){return (x.meal||1)===1;}).length,c2=ph.filter(function(x){return x.meal===2;}).length;s.push("Photos: "+ph.length+(R.pattern==="two"?" (Meal 1: "+c1+", Meal 2: "+c2+")":"")+", attached to this share when the phone allows it.");}
   s.push("Eaten total (estimates): "+fmt(R.eaten.cal)+" cal, "+fmt(R.eaten.p)+" g protein, "+fmt(R.eaten.f)+" g fat, "+fmt(R.eaten.c)+" g carbs"+(R.unknown.length?" plus "+R.unknown.length+" item"+(R.unknown.length>1?"s":"")+" still to estimate":"")+"; target "+fmt(R.calLo)+"–"+fmt(R.calHi)+" cal.");
-  s.push(RL()+" PM: "+hw(R.pmMob)+". Bedtime pain: "+(has(st.bedPain)?st.bedPain:"not logged")+". Day score "+Math.round(R.score*100)+"%.");
+  s.push(RL()+" PM: "+hw(R.pmMob)+". Pain today: "+(has(st.bedPain)?st.bedPain:"not logged")+". Day score "+Math.round(R.score*100)+"%.");
   var W=warnings(R,"",NOW).filter(function(w){return w.lvl!=="info";});
   if(W.length)s.push("Flags: "+W.map(function(w){return w.t.toLowerCase();}).join("; ")+".");
-  s.push("Pain points / fix this: "+(st.notes&&st.notes.trim()?st.notes.trim():"none")+".");
+  s.push("Pain points / fix this: "+(st.notes&&st.notes.trim()?st.notes.trim():"none")+(Array.isArray(st.notesArchive)&&st.notesArchive.length?" ("+st.notesArchive.length+" marked fixed)":"")+".");
   return s.join(" ");
 }
 function sumDates(){var out=[];for(var i=U.sumDays-1;i>=0;i--){var d=addDays(U.sel,-i);if(DB.days[d]||i===0)out.push(d);}return out;}
@@ -767,10 +797,11 @@ function view(){
   h+='<div id="pg-'+T+'" style="display:flex;flex-direction:column;gap:14px">';
   if(T==="food")h+=pageFood(R,today);else if(T==="train")h+=pageTrain(R,today);else if(T==="progress")h+=pageProgress(R,today);else if(T==="more")h+=pageMore(R,today);else h+=pageToday(R,today);
   h+='</div>';
-  h+='<div class="dim" style="text-align:center;margin-top:4px">Nalam Daily Fuel · v6 · sync · works offline</div>';
+  h+='<div class="dim" style="text-align:center;margin-top:4px">Nalam Daily Fuel · v7 · sync · works offline</div>';
   h+='<nav class="tabs" id="tabs"><div class="tabs-in">'+TABS.map(function(t){var badge=t[0]==="today"&&warnings(R,today,NOW).some(function(w){return w.lvl==="red";})?'<i style="position:absolute;margin-left:22px;width:8px;height:8px;border-radius:4px;background:'+K.red+'"></i>':'';return '<button id="tab-'+t[0]+'" class="'+(T===t[0]?"on":"")+'" data-a="tab" data-v="'+t[0]+'"><span>'+t[1]+badge+'</span>'+t[2]+'</button>';}).join("")+'</div></nav>';
   if(U.doneSheet)h+=doneSheet(R);
   if(U.lockMsg)h+='<div id="lockmsg" style="position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 84px);z-index:45;max-width:736px;margin:0 auto;padding:12px 14px;border-radius:14px;background:#13202a;border:1px solid '+K.lime+'88;font-size:14px;font-weight:600;display:flex;gap:10px;align-items:center"><span style="flex:1">🔒 '+esc(U.lockMsg)+'</span><button class="togl sm" data-a="unlockday" style="color:'+K.text+'">Unlock to edit</button><button class="togl sm" data-a="lockclose" style="color:'+K.sub+'">×</button></div>';
+  if(U.toast)h+='<div class="toast" id="toast" style="border:1px solid '+(U.toast.ok?K.lime:K.amber)+'88"><span>'+(U.toast.ok?"☁️":"💾")+'</span><span style="flex:1" id="toastMsg">'+esc(U.toast.t)+'</span><button class="togl sm" data-a="toastclose" style="color:'+K.sub+'">×</button></div>';
   if(U.settings)h+=settingsSheet();
   if(U.info&&INFO[U.info])h+='<div class="sheetbg" id="sheet" data-a="infoclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:8px"><span style="font-weight:800;font-size:17px">'+esc(info(U.info).title)+'</span><button data-a="infoclose" data-x="1" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div>'+info(U.info).body.map(function(b){return '<div style="color:'+K.sub+';font-size:14px;line-height:21px;margin-top:8px">'+esc(b)+'</div>';}).join("")+'</div></div>';
   if(U.phView){var pv=phFind(U.phView);if(pv)h+='<div class="sheetbg" id="phsheet" data-a="phclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:10px"><span style="font-weight:800;font-size:17px">Meal '+(pv.meal||1)+' photo · '+nice(pv.date)+'</span><button data-a="phclose" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div><img src="'+pv.url+'" alt="meal photo" style="width:100%;border-radius:14px;display:block"><div class="row" style="margin-top:12px">'+(R.pattern==="two"?'<button class="btn ghost" data-a="phmove" data-k="'+pv.id+'">⇄ Move to Meal '+((pv.meal||1)===1?2:1)+'</button>':'')+'<button class="btn ghost" data-a="phdel" data-k="'+pv.id+'" style="color:'+K.red+'">Delete photo</button></div></div></div>';}
@@ -796,11 +827,11 @@ function pageToday(R,today){
   var edays=entryDays();if(!hasActuals(DB.days[sel])&&edays.length&&edays.indexOf(sel)<0)h+='<div class="warn" id="otherdays" style="border-color:'+K.amber+'88;background:'+K.amber+'14;align-items:flex-start"><span>🔎</span><div style="flex:1"><b style="color:'+K.amber+'">NOTHING LOGGED FOR '+esc(nice(sel).toUpperCase())+'</b><div>Saved entries in this browser are on:</div><div class="row" style="margin-top:6px">'+edays.slice(-6).map(function(d){return '<button class="togl sm" data-a="sel" data-v="'+d+'" style="color:'+K.text+';min-height:40px">'+esc(nice(d))+'</button>';}).join("")+'<button class="togl sm" data-a="recopen" style="color:'+K.text+';min-height:40px">Data &amp; recovery</button></div></div></div>';
   if(sel>today)h+='<div class="warn" style="border-color:'+K.violet+'88;background:'+K.violet+'14">Planning ahead: this is a future day. Look now, log on the day.</div>';
   else if(sel<today)h+='<div class="warn" style="border-color:'+K.teal+'66;background:'+K.teal+'10">Editing a past day ('+nice(sel)+'). Changes save to that day.</div>';
-  if(st.doneAt)h+='<div class="card" id="donecard" style="border-color:'+K.lime+'88;background:linear-gradient(160deg,rgba(110,240,160,0.16),rgba(34,227,207,0.06))"><div class="row sb"><span class="h2">✅ Day done</span><span class="lbl" style="color:'+K.lime+'">'+new Date(st.doneAt).toLocaleTimeString("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit"})+' CT</span></div><div class="muted" style="margin-top:4px">Read-only. '+M.doneStreak+'-day completion streak · +'+(25+Math.min(50,(M.doneStreak-1)*10))+' XP for closing it out.</div><div class="row" style="margin-top:10px"><button class="btn" data-a="donesend">📤 Send to Nalam</button><button class="btn ghost" data-a="unlockday" id="unlockBtn">🔓 Unlock to edit</button></div></div>';
+  if(st.doneAt)h+='<div class="card" id="donecard" style="border-color:'+K.lime+'88;background:linear-gradient(160deg,rgba(110,240,160,0.16),rgba(34,227,207,0.06))"><div class="row sb"><span class="h2">✅ Day done</span><span class="lbl" style="color:'+K.lime+'">'+new Date(st.doneAt).toLocaleTimeString("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit"})+' CT</span></div><div class="muted" style="margin-top:4px">Read-only. '+M.doneStreak+'-day completion streak · +'+(25+Math.min(50,(M.doneStreak-1)*10))+' XP for closing it out.</div><div class="dim" id="doneSync" style="margin-top:6px">'+(!syOn()?"Saved on this device. Sync is off, so Nalam can\'t see it yet: turn it on in ⚙.":SY.dirty[sel]?"Saved. Will sync when online.":"☁ Synced. Nalam can see it.")+'</div><div class="row" style="margin-top:10px">'+(syOn()&&SY.dirty[sel]?'<button class="btn" data-a="syncnow">↻ Sync now</button>':'')+'<button class="btn ghost" data-a="unlockday" id="unlockBtn">🔓 Unlock to edit</button></div></div>';
   else if(sel<=today)h+='<button class="btn" id="markDone" data-a="doneask" style="width:100%;min-height:58px;font-size:17px;border-radius:18px;box-shadow:0 10px 30px rgba(110,240,160,0.25)">🏁 Mark day done'+(M.doneStreak?' · '+M.doneStreak+'-day streak':'')+'</button>';
   h+='<div class="card" style="padding:12px"><div class="row sb" style="margin-bottom:8px"><span class="lbl">Coach · stay on plan</span><span class="dim">'+(W.length?W.length+" alert"+(W.length>1?"s":""):"all clear")+'</span></div><div style="display:flex;flex-direction:column;gap:6px" id="coach">';
   if(!W.length)h+='<div class="warn" style="border-color:'+K.lime+'66;background:'+K.lime+'12"><span>✅</span><div><b style="color:'+K.lime+'">ON PLAN</b><div>Nothing pulling you off course. Next: '+(active>=0?esc(steps[active].title):"day complete")+'.</div></div></div>';
-  W.forEach(function(w){var c=w.lvl==="red"?K.red:w.lvl==="amber"?K.amber:K.teal;h+='<div class="warn" style="border-color:'+c+'77;background:'+c+'14"><span>'+(w.lvl==="red"?"⛔":w.lvl==="amber"?"⚠️":"ℹ️")+'</span><div><b style="color:'+c+'">'+esc(w.t)+'</b><div>'+esc(w.m)+'</div>'+(w.fix?'<button class="togl sm" data-a="'+w.fix.a+'"'+(w.fix.k?' data-k="'+w.fix.k+'"':'')+' style="margin-top:6px;color:'+K.text+'">'+esc(w.fix.l)+'</button>':'')+'</div></div>';});
+  W.forEach(function(w){var c=w.lvl==="red"?K.red:w.lvl==="amber"?K.amber:K.teal;h+='<div class="warn" style="border-color:'+c+'77;background:'+c+'14"><span>'+(w.lvl==="red"?"⛔":w.lvl==="amber"?"⚠️":"ℹ️")+'</span><div><b style="color:'+c+'">'+esc(w.t)+'</b><div>'+esc(w.m)+'</div>'+(w.fix?'<button class="togl sm" data-a="'+w.fix.a+'"'+(w.fix.k?' data-k="'+w.fix.k+'"':'')+(has(w.fix.v)?' data-v="'+esc(w.fix.v)+'"':'')+' style="margin-top:6px;color:'+K.text+'">'+esc(w.fix.l)+'</button>':'')+'</div></div>';});
   h+='</div></div>';
   var remaining=R.calHi-R.eaten.cal;
   h+='<div class="card" style="background:linear-gradient(160deg,rgba(34,227,207,0.10),rgba(142,108,255,0.10) 50%,rgba(255,122,69,0.07))"><div class="row sb" style="margin-bottom:12px"><span class="lbl">Mission control</span><span class="row">'+seg([["plan","Plan"],["eaten","Eaten"]],U.view,{a:"view"})+'</span></div>';
@@ -872,22 +903,24 @@ function pageProgress(R,today){
 }
 function pageMore(R,today){
   var st=R.st,sel=R.iso,remDay=remOn(sel),h="",ds=sumDates();ds.forEach(phEnsure);var nph=phFiles(ds).length,unkN=ds.reduce(function(a,d){return a+C(d).unknown.length;},0);
-  // send to Nalam
-  h+='<div class="card" id="sendcard" style="background:linear-gradient(160deg,rgba(142,108,255,0.12),rgba(34,227,207,0.06))"><div class="row sb" style="margin-bottom:10px"><span class="h2">📤 Send to Nalam</span>'+ib("save")+'</div><div class="row" style="margin-bottom:10px"><span class="dim">Include</span>'+seg([["1","This day"],["2","Last 2 days"],["3","Last 3 days"]],String(U.sumDays),{a:"sumdays"})+'</div><div class="row"><button class="btn" id="shareBtn" data-a="share" style="min-height:48px">'+(nph?"Share summary + "+nph+" photo"+(nph>1?"s":"")+"…":"Share to Nalam…")+'</button><button class="btn ghost" id="copyBtn" data-a="copy" style="min-height:48px">Copy summary</button>'+(nph?'<button class="btn ghost" id="sharePh" data-a="shareph" style="min-height:48px">Share photos only</button>':'')+'</div>'+(unkN?'<div class="dim" style="margin-top:8px;color:'+K.violet+'">'+unkN+' item(s) need an estimate: Nalam fills them in from the summary'+(nph?' and photos':'')+'.</div>':'')+
-    (U.msg?'<div id="msg" style="margin-top:8px;font-size:13px;font-weight:600;color:'+(U.msgOk?K.lime:K.amber)+'">'+esc(U.msg)+'</div>':'')+
-    (U.sumText?'<textarea id="sumbox" class="inp" readonly rows="7" style="margin-top:10px;font-size:13px;line-height:19px">'+esc(U.sumText)+'</textarea>':'')+
-    '<div class="dim" style="margin-top:8px">Once a day is enough'+(DB.meta.lastSent?" · last shared "+new Date(DB.meta.lastSent).toLocaleString("en-US",{timeZone:"America/Chicago",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+" CT":"")+'. Nalam can\'t see this phone, so this is how your entries and pain points reach Nalam.</div></div>';
-  h+=recoveryPanel();
-  // pain points
-  h+='<div class="card" style="border-color:'+K.amber+'55"><div class="row sb" style="margin-bottom:8px"><span class="h2">🛠 Pain points / fix this</span>'+ib("pains")+'</div><div class="dim" style="margin-bottom:8px">Anything the app can\'t do, gets wrong, or makes slow. Saved for '+nice(sel)+'; goes into Send to Nalam.</div><textarea id="f-notes" class="inp" data-f="notes" rows="3" placeholder="e.g. need an option for…; this number looks off…">'+esc(st.notes||"")+'</textarea>';
-  var past=loggedDays(today).filter(function(d){return d!==sel&&DB.days[d].notes&&DB.days[d].notes.trim();}).slice(-3);
-  if(past.length)h+='<div class="dim" style="margin-top:8px">'+past.map(function(d){return '<div>• '+nice(d)+': '+esc(DB.days[d].notes.trim().slice(0,90))+'</div>';}).join("")+'</div>';
+  // pain points: this day only, never carried over
+  var arch=Array.isArray(st.notesArchive)?st.notesArchive:[],hasN=!!String(st.notes||"").trim();
+  h+='<div class="card" id="paincard" style="border-color:'+K.amber+'55"><div class="row sb" style="margin-bottom:8px"><span class="h2">🛠 Pain points / fix this</span>'+ib("pains")+'</div><div class="dim" style="margin-bottom:8px">Anything the app can\'t do, gets wrong, or makes slow. Saved for '+nice(sel)+' only; Nalam reads it through sync.</div><textarea id="f-notes" class="inp" data-f="notes" rows="3" placeholder="e.g. need an option for…; this number looks off…">'+esc(st.notes||"")+'</textarea>';
+  h+='<div class="row sb" style="margin-top:8px"><button class="btn ghost" id="notesFix" data-a="notesfix"'+(hasN?'':' disabled')+' style="min-height:44px;color:'+K.lime+'">Fixed ✓ / clear</button><span class="dim" id="notesArch">'+(arch.length?arch.length+" fixed note"+(arch.length>1?"s":"")+" archived for this day":"")+'</span></div>';
   h+='</div>';
+  h+=recoveryPanel();
   // playbook
-  h+='<div class="card"><div class="h2" style="margin-bottom:12px">Playbook</div><div class="row">'+["peanut","half","active","dur","floor","full","extras","gate","mob","carb","omad","weigh","score","save"].concat(remDay?["rem"]:[]).map(function(k){return '<button class="togl" data-a="info" data-k="'+k+'" style="color:'+K.text+'">'+esc(info(k).title)+'</button>';}).join("")+'</div><div class="dim" style="margin-top:12px">All food numbers are estimates from typical values, cooked weights. Targets: 1,650–1,700 cal (walk-run days 1,700–1,800), protein 150–160 g, fat 55–65 g, carbs 100–130 g, fiber 30+ g. Suggestions only; your doctor\'s advice comes first.</div></div>';
+  h+='<div class="card"><div class="h2" style="margin-bottom:12px">Playbook</div><div class="row">'+["peanut","half","active","strava","dur","painday","floor","full","extras","gate","mob","carb","omad","weigh","score","save"].concat(remDay?["rem"]:[]).map(function(k){return '<button class="togl" data-a="info" data-k="'+k+'" style="color:'+K.text+'">'+esc(info(k).title)+'</button>';}).join("")+'</div><div class="dim" style="margin-top:12px">All food numbers are estimates from typical values, cooked weights. Targets: 1,650–1,700 cal (walk-run days 1,700–1,800), protein 150–160 g, fat 55–65 g, carbs 100–130 g, fiber 30+ g. Suggestions only; your doctor\'s advice comes first.</div></div>';
   // data
   h+='<div class="card"><div class="h2" style="margin-bottom:8px">Data</div><div class="dim" style="margin-bottom:10px">'+Object.keys(DB.days).length+' day(s) saved on this phone.'+(DB.meta.repairLog&&DB.meta.repairLog.length?' Date fix: '+DB.meta.repairLog.map(function(x){return nice(x.from)+' → '+nice(x.to)+' ('+x.how.split(' ')[0]+')';}).join(', ')+'.':'')+' Export a backup now and then; Import restores it (on a new phone too). Photos stay on this phone and are not in the backup.</div><div class="row"><button class="btn ghost" data-a="export">Export backup</button><button class="btn ghost" data-a="import">Import backup</button><button class="btn ghost" data-a="resetday" style="color:'+K.red+'">Clear this day</button></div></div>';
-  h+='<div class="card"><div class="row sb"><span class="h2">⚙ Settings</span><button class="btn ghost" data-a="settings">Open settings</button></div><div class="dim" style="margin-top:8px">Setup code, race, reminder and goal values. Saved on this phone only.</div></div>';
+  h+='<div class="card"><div class="row sb"><span class="h2">⚙ Settings</span><button class="btn ghost" data-a="settings">Open settings</button></div><div class="dim" style="margin-top:8px">Setup code, sync, race, reminder and goal values. Saved on this device only.</div></div>';
+  // backup: copy summary (sync is the main path now)
+  var bkOpen=U.bkOpen||!syOn();
+  h+='<div class="card" id="sendcard" style="padding:14px"><div class="row sb"><span class="h2">📋 Backup: copy summary</span><span class="row">'+ib("save")+'<button class="btn ghost" id="bkToggle" data-a="bkopen" style="min-height:40px">'+(bkOpen?"Hide":"Show")+'</button></span></div><div class="dim" style="margin-top:6px">'+(syOn()?"Not needed day to day: sync already sends your days to Nalam. Use this only if sync fails.":"Sync is off on this device, so this is how Nalam gets your day. Turn on Sync in ⚙ to skip it.")+'</div>';
+  if(bkOpen){h+='<div class="row" style="margin:10px 0"><span class="dim">Include</span>'+seg([["1","This day"],["2","Last 2 days"],["3","Last 3 days"]],String(U.sumDays),{a:"sumdays"})+'</div><div class="row"><button class="btn" id="shareBtn" data-a="share" style="min-height:48px">'+(nph?"Share summary + "+nph+" photo"+(nph>1?"s":"")+"…":"Share summary…")+'</button><button class="btn ghost" id="copyBtn" data-a="copy" style="min-height:48px">Copy summary</button>'+(nph?'<button class="btn ghost" id="sharePh" data-a="shareph" style="min-height:48px">Share photos only</button>':'')+'</div>'+(unkN?'<div class="dim" style="margin-top:8px;color:'+K.violet+'">'+unkN+' item(s) need an estimate: Nalam fills them in from the summary'+(nph?' and photos':'')+'.</div>':'')+
+    (U.msg?'<div id="msg" style="margin-top:8px;font-size:13px;font-weight:600;color:'+(U.msgOk?K.lime:K.amber)+'">'+esc(U.msg)+'</div>':'')+
+    (U.sumText?'<textarea id="sumbox" class="inp" readonly rows="7" style="margin-top:10px;font-size:13px;line-height:19px">'+esc(U.sumText)+'</textarea>':'')+(DB.meta.lastSent?'<div class="dim" style="margin-top:8px">Last copied '+new Date(DB.meta.lastSent).toLocaleString("en-US",{timeZone:"America/Chicago",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})+' CT.</div>':'');}
+  h+='</div>';
   return h;
 }
 function ownedKeys(){var out=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf("nalam")===0)out.push(k);}}catch(e){}return out.sort();}
@@ -941,27 +974,29 @@ function dayLocked(){var d=DB.days[U.sel];if(d&&d.doneAt){U.lockMsg=nice(U.sel)+
 function openItems(R){var st=R.st,p=R.plan,o=[];
   if(!(num(st.weight)>0))o.push({k:"weigh",t:"Weight not logged"});
   if(R.amMob.s==="notyet")o.push({k:"ammob",t:RL()+" AM not logged"});
-  if(R.mobStr&&R.mobStr.s==="notyet")o.push({k:"ammob",t:"Strengthening not logged"});
-  if(p.am!=="rest"&&R.amKind!=="rest"&&R.amStatus==="planned")o.push({k:"am",t:sessionInfo(R).name+" not marked done or skipped"});
-  if(p.pm!=="none"&&R.pmStatus==="planned")o.push({k:"pm",t:"Strength not marked done or skipped ("+R.setsDone+"/"+R.sk.length+" sets)"});
+  if(p.am!=="rest"&&R.amKind!=="rest"&&R.amStatus==="planned"&&!R.amDone)o.push({k:"am",t:sessionInfo(R).name+" not marked done or skipped"});
+  if(p.pm!=="none"&&R.pmStatus==="planned"&&!R.pmDone)o.push({k:"pm",t:"Strength not marked done or skipped ("+R.setsDone+"/"+R.sk.length+" sets)"});
   if(R.pmMob.s==="notyet")o.push({k:"pmmob",t:RL()+" PM not logged"});
-  if(!has(st.bedPain))o.push({k:"pmmob",t:"Bedtime pain score not logged"});
-  if(R.amStatus==="done"&&!has(st.walkPain))o.push({k:"am",t:"Pain after the session not logged"});
+  if(!has(st.bedPain))o.push({k:"pain",t:"Pain today not logged (you can still add it tomorrow morning)"});
+  if(R.amDone&&!has(st.walkPain))o.push({k:"am",t:"Pain after the session not logged"});
   if(R.eaten.cal===0)o.push({k:"food",t:"No food marked eaten"});
   R.unknown.forEach(function(l){o.push({k:"food",t:"Needs estimate: "+l.name+" (Nalam will estimate it)"});});
   return o;}
 function doneSheet(R){var o=openItems(R),h='<div class="sheetbg" id="donesheet" data-a="doneclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:8px"><span style="font-weight:800;font-size:18px">🏁 Mark '+esc(nice(R.iso))+' done</span><button data-a="doneclose" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div>';
   if(o.length){h+='<div class="muted" style="margin-bottom:10px">Still open ('+o.length+'). Tap one to fix it, or finish anyway.</div><div style="display:flex;flex-direction:column;gap:6px" id="openlist">'+o.map(function(x){return '<button class="nx" data-a="donefix" data-k="'+x.k+'" style="min-height:48px"><span style="color:'+K.amber+'">⚠️</span><span style="flex:1">'+esc(x.t)+'</span><span style="color:'+K.dim+'">›</span></button>';}).join("")+'</div>';}
   else h+='<div class="warn" style="border-color:'+K.lime+'66;background:'+K.lime+'12"><span>✅</span><div>Everything is logged. Day score '+Math.round(R.score*100)+'%.</div></div>';
-  h+='<div class="dim" style="margin-top:10px">Done makes the day read-only (Unlock to edit any time), counts toward your streaks, and opens Send to Nalam.</div><div class="row" style="margin-top:12px"><button class="btn" id="doneGo" data-a="donego" style="min-height:50px;flex:1">'+(o.length?"Finish anyway · mark done":"✓ Mark day done")+'</button><button class="btn ghost" data-a="doneclose" style="min-height:50px">Not yet</button></div></div></div>';
+  h+='<div class="dim" style="margin-top:10px">Done makes the day read-only (Unlock to edit any time; Pain today stays editable), counts toward your streaks, and syncs it right away so Nalam can see it.</div><div class="row" style="margin-top:12px"><button class="btn" id="doneGo" data-a="donego" style="min-height:50px;flex:1">'+(o.length?"Finish anyway · mark done":"✓ Mark day done")+'</button><button class="btn ghost" data-a="doneclose" style="min-height:50px">Not yet</button></div></div></div>';
   return h;}
 function markDone(){var R=C(U.sel),o=openItems(R),cur=DB.days[U.sel]||{},nd=cp(cur);nd.doneAt=Date.now();nd.doneOpen=o.map(function(x){return x.t;});nd.updatedAt=Date.now();if(!nd.createdAt)nd.createdAt=Date.now();
-  if(U.sel>nowCT().iso)return;var f2=cp(nd.ft||{});f2.doneAt=f2.doneOpen=nd.doneAt;nd.ft=f2;DB.days[U.sel]=nd;save();syMark(U.sel);syncNow({quiet:true});U.doneSheet=false;openSend();}
-function openSend(){U.tab="more";U.sumDays=1;memo={};U.sumText=buildSummary();U.msg="Day done. Share it with Nalam now.";U.msgOk=true;U.focus="sendcard";render();}
+  if(U.sel>nowCT().iso)return;var f2=cp(nd.ft||{});f2.doneAt=f2.doneOpen=nd.doneAt;nd.ft=f2;var dd0=U.sel;DB.days[dd0]=nd;save();U.doneSheet=false;U.tab="today";memo={};
+  if(!syOn()){toast("Saved on this device. Sync is off: turn it on in ⚙ so Nalam can see it.",false);window.scrollTo(0,0);return;}
+  SY.dirty[dd0]=Date.now();sySave();toast("Saving…",true,60000);window.scrollTo(0,0);
+  syncNow({quiet:true}).then(function(){var ok=SY.status==="synced"&&!SY.dirty[dd0];toast(ok?"Synced, Nalam can see it":SY.status==="error"?"Saved here. Sync failed: "+(SY.err||"error")+". Tap the sync pill to retry.":"Saved, will sync when online",ok);});}
+function toast(t,ok,ms){U.toast={t:t,ok:!!ok,at:Date.now()};var at=U.toast.at;render();setTimeout(function(){if(U.toast&&U.toast.at===at){U.toast=null;render();}},ms||4500);}
 // ===== sync to a private GitHub repo (optional; off until a token is saved on this device) =====
 var SKEY="nalam-sync-v1";
 var SY=(function(){var d={owner:"avisreverse",repo:"nalam-data",token:"",dirty:{},shas:{},phUp:{},lastSync:0,lastPull:0,status:"",err:""};try{var r=localStorage.getItem(SKEY);if(r){var o=JSON.parse(r);for(var k in o)d[k]=o[k];}}catch(e){}if(!d.dirty)d.dirty={};if(!d.shas)d.shas={};if(!d.phUp)d.phUp={};return d;})();
-var SYNC={busy:false,timer:null,again:false};
+var SYNC={busy:false,timer:null,again:false,waiters:[]};
 function sySave(){try{localStorage.setItem(SKEY,JSON.stringify(SY));}catch(e){}}
 function syOn(){return !!(SY.token&&SY.owner&&SY.repo&&LOAD.ok);}
 function sySet(st,err){SY.status=st;SY.err=err||"";sySave();}
@@ -980,6 +1015,14 @@ function mergeRemote(loc,rem){
   var out={},ft={},k,pullNew=false,pushNew=false,keys={};
   for(k in loc)keys[k]=1;for(k in rem)keys[k]=1;delete keys.ft;delete keys.updatedAt;
   for(k in keys){var inL=k in loc,inR=k in rem;
+    if(k==="strava"){var ls=stravaList(loc.strava),rs=stravaList(rem.strava),tsl=num((loc.ft||{}).strava),tsr=num((rem.ft||{}).strava);
+      // written only by Nalam into the repo: adopt the remote copy; never let an empty or older local copy replace it
+      if(inR&&(!inL||!ls.length&&rs.length||tsr>=tsl)){out.strava=rem.strava;ft.strava=tsr;if(JSON.stringify(loc.strava)!==JSON.stringify(rem.strava))pullNew=true;}
+      else if(inL&&ls.length){out.strava=loc.strava;ft.strava=tsl;pushNew=true;}
+      else if(inR){out.strava=rem.strava;ft.strava=tsr;}
+      continue;}
+    if(k==="notesArchive"){var al=Array.isArray(loc[k])?loc[k]:[],ar=Array.isArray(rem[k])?rem[k]:[],seen={},u=[];al.concat(ar).forEach(function(x){var key=JSON.stringify([x&&x.text,x&&x.clearedAt]);if(!seen[key]){seen[key]=1;u.push(x);}});
+      u.sort(function(a,b){return num(a&&a.clearedAt)-num(b&&b.clearedAt);});out[k]=u;ft[k]=Math.max(fieldTs(loc,k),fieldTs(rem,k));if(u.length>al.length)pullNew=true;if(u.length>ar.length)pushNew=true;continue;}
     if(inL&&!inR){out[k]=loc[k];ft[k]=fieldTs(loc,k);pushNew=true;continue;}
     if(inR&&!inL){out[k]=rem[k];ft[k]=fieldTs(rem,k);pullNew=true;continue;}
     var tl=fieldTs(loc,k),tr=fieldTs(rem,k),same=JSON.stringify(loc[k])===JSON.stringify(rem[k]);
@@ -1011,14 +1054,16 @@ function syncPhotos(){if(!window.indexedDB)return Promise.resolve();
     .then(function(){return gh("data/photos");}).then(function(r){if(!r||r.status!==200||!Array.isArray(r.json))return;var miss=r.json.filter(function(f){var m=f.name.match(/^(\d{4}-\d{2}-\d{2})-meal(\d)-(.+)\.jpg$/);return m&&!have[m[3]];});
       return miss.reduce(function(pr,f){return pr.then(function(){return gh(f.path).then(function(g){if(g.status!==200||!g.json||!g.json.content)return;var m=f.name.match(/^(\d{4}-\d{2}-\d{2})-meal(\d)-(.+)\.jpg$/);SY.phUp[m[3]]=1;
         return phPut({id:m[3],date:m[1],meal:+m[2],t:Date.now(),buf:b64Buf(g.json.content),type:"image/jpeg"}).then(function(){delete PH.days[m[1]];});});});},Promise.resolve());});});}
-function syncNow(opts){opts=opts||{};if(!syOn())return Promise.resolve();if(SYNC.busy){SYNC.again=true;return Promise.resolve();}
+function syFlush(){var w=SYNC.waiters;SYNC.waiters=[];w.forEach(function(f){try{f();}catch(e){}});}
+function syEnd(){if(SYNC.again){SYNC.again=false;return syncNow({quiet:true}).then(syFlush);}syFlush();}
+function syncNow(opts){opts=opts||{};if(!syOn())return Promise.resolve();if(SYNC.busy){SYNC.again=true;return new Promise(function(res){SYNC.waiters.push(res);});}
   if(navigator.onLine===false){sySet("offline");render();return Promise.resolve();}
   var tgt=SY.owner.trim()+"/"+SY.repo.trim();if(SY.seededFor!==tgt){Object.keys(DB.days).forEach(function(d){SY.dirty[d]=SY.dirty[d]||Date.now();});SY.seededFor=tgt;SY.shas={};SY.phUp={};sySave();}
   SYNC.busy=true;clearTimeout(SYNC.timer);if(!opts.quiet){sySet("syncing");render();}
   return pullAll().then(function(changed){var ds=Object.keys(SY.dirty).sort();return ds.reduce(function(pr,d){return pr.then(function(){return pushDay(d);});},Promise.resolve()).then(function(){return changed;});})
    .then(function(changed){if(changed){memo={};save();}SY.lastSync=Date.now();sySet(Object.keys(SY.dirty).length?"pending":"synced");return syncPhotos().catch(function(){});})
-   .then(function(){SYNC.busy=false;sySave();render();if(SYNC.again){SYNC.again=false;syncNow({quiet:true});}},
-    function(e){SYNC.busy=false;sySet(e&&e.offline?"offline":"error",e&&e.offline?"":(e&&e.message)||"sync failed");render();});}
+   .then(function(){SYNC.busy=false;sySave();render();return syEnd();},
+    function(e){SYNC.busy=false;sySet(e&&e.offline?"offline":"error",e&&e.offline?"":(e&&e.message)||"sync failed");render();return syEnd();});}
 function syTest(){if(!SY.token.trim()){SY.testMsg="Paste a token first.";render();return;}SY.testMsg="Testing…";render();
   fetch("https://api.github.com/repos/"+encodeURIComponent(SY.owner.trim())+"/"+encodeURIComponent(SY.repo.trim()),{cache:"no-store",headers:{"Authorization":"Bearer "+SY.token.trim(),"Accept":"application/vnd.github+json"}})
    .then(function(r){return r.json().then(function(j){return {s:r.status,j:j};},function(){return {s:r.status,j:{}};});})
@@ -1062,7 +1107,7 @@ var root=document.getElementById("app");
 function render(){var t=document.createElement("div");t.innerHTML=view();morphKids(root,t);
   if(U.focus){var f=U.focus;U.focus=null;var el=document.getElementById("step-"+f)||document.getElementById(f);if(el){var y=el.getBoundingClientRect().top+window.pageYOffset-(document.getElementById("hdr")||{offsetHeight:120}).offsetHeight-10;window.scrollTo(0,Math.max(0,y));}}}
 // ===== actions =====
-function upd(patch){if(dayLocked())return false;var tdy=nowCT().iso;if(U.sel>tdy&&U.okFuture!==U.sel){if(!confirm("You are on "+nice(U.sel)+", a future day (today is "+nice(tdy)+" in Chicago). Save this entry to "+nice(U.sel)+"?")){U.sel=tdy;render();return;}U.okFuture=U.sel;}var cur=DB.days[U.sel]||{},nd={},k;if(!cur.createdAt)nd.createdAt=Date.now();for(k in cur)nd[k]=cur[k];for(k in patch)nd[k]=patch[k];nd.updatedAt=Date.now();var ft0=cp(cur.ft||{});for(k in patch)ft0[k]=nd.updatedAt;nd.ft=ft0;DB.days[U.sel]=nd;save();syMark(U.sel);}
+function upd(patch){var pk=Object.keys(patch);if(!(pk.length===1&&pk[0]==="bedPain")&&dayLocked())return false;var tdy=nowCT().iso;if(U.sel>tdy&&U.okFuture!==U.sel){if(!confirm("You are on "+nice(U.sel)+", a future day (today is "+nice(tdy)+" in Chicago). Save this entry to "+nice(U.sel)+"?")){U.sel=tdy;render();return;}U.okFuture=U.sel;}var cur=DB.days[U.sel]||{},nd={},k;if(!cur.createdAt)nd.createdAt=Date.now();for(k in cur)nd[k]=cur[k];for(k in patch)nd[k]=patch[k];nd.updatedAt=Date.now();var ft0=cp(cur.ft||{});for(k in patch)ft0[k]=nd.updatedAt;nd.ft=ft0;DB.days[U.sel]=nd;save();syMark(U.sel);}
 function stNow(){return day(U.sel);}
 function stamp(){var n=nowCT();return U.sel===n.iso?n.hm:null;}
 function cp(o){var r={};for(var k in o)r[k]=o[k];return r;}
@@ -1078,13 +1123,16 @@ document.addEventListener("click",function(ev){
   if(a==="doneclose"){U.doneSheet=false;render();return;}
   if(a==="donefix"){U.doneSheet=false;U.tab=STEP_TAB[k]||(k==="food"?"food":"train");if(k&&k!=="food"){U.open[U.sel+k]=true;U.focus=k;}render();window.scrollTo(0,0);if(U.focus)render();return;}
   if(a==="donego"){markDone();return;}
-  if(a==="donesend"){openSend();return;}
+  if(a==="toastclose"){U.toast=null;render();return;}
+  if(a==="bkopen"){U.bkOpen=!(U.bkOpen||!syOn());render();return;}
   if(a==="unlockday"){var dd=DB.days[U.sel];if(dd&&dd.doneAt&&confirm("Unlock "+nice(U.sel)+" to edit? It will no longer count as done until you mark it done again.")){var nd2=cp(dd);nd2.lastDoneAt=nd2.doneAt;nd2.doneAt=null;nd2.doneOpen=null;nd2.updatedAt=Date.now();var f3=cp(nd2.ft||{});f3.doneAt=f3.doneOpen=nd2.updatedAt;nd2.ft=f3;DB.days[U.sel]=nd2;save();syMark(U.sel);}U.lockMsg="";render();return;}
   if(a==="lockclose"){U.lockMsg="";render();return;}
   if(a==="recopen"){U.tab="more";U.focus="recovery";render();return;}
   if(a.indexOf("rec")===0){var rr=recAction(a,el);if(rr==="async")return;if(rr){render();return;}}
   if(a!=="toggle")pin(el);
-  if(a==="set"){var o={};o[k]=(k==="decision"&&st.decision===v)?null:v;upd(o);}
+  if(a==="set"){var o={};o[k]=((k==="decision"||k==="amMob"||k==="pmMob")&&st[k]===v)?null:v;upd(o);}
+  else if(a==="strava"){var os={};os[k]=!st[k];upd(os);}
+  else if(a==="notesfix"){var nt=String(st.notes||"").trim();if(!nt||dayLocked()){render();return;}var arc=(Array.isArray(st.notesArchive)?st.notesArchive:[]).concat([{text:nt,clearedAt:Date.now()}]);upd({notes:"",notesArchive:arc});var ta2=document.getElementById("f-notes");if(ta2){ta2.value="";ta2.blur();}toast("Marked fixed. Archived with "+nice(U.sel)+".",true);return;}
   else if(a==="pain"){var o2={};o2[k]=(st[k]===+v)?null:+v;upd(o2);}
   else if(a==="mark"){var c=cp(st.marks);c[k]=!c[k];upd({marks:c});}
   else if(a==="qty"){var qq=cp(st.qty);qq[k]=+v;upd({qty:qq});}
