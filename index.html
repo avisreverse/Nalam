@@ -220,12 +220,19 @@ function fmt(n){return Math.round(n).toLocaleString("en-US");}
 function num(s){var v=parseFloat(s);return isNaN(v)?0:v;}
 function has(v){return v!==undefined&&v!==null;}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-function nowCT(){
-  var parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
-  var o={};parts.forEach(function(p){o[p.type]=p.value;});
-  var h=parseInt(o.hour,10)%24,m=parseInt(o.minute,10);
-  return {iso:o.year+"-"+o.month+"-"+o.day,h:h,m:m,mins:h*60+m,hm:(h<10?"0":"")+h+":"+(m<10?"0":"")+m};
-}
+var TZ="America/Chicago",_fD=null,_fT=null;
+function _fmt(){if(_fD)return;try{_fD=new Intl.DateTimeFormat("en-US",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"});_fT=new Intl.DateTimeFormat("en-US",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false});}catch(e){_fD=_fT=false;}}
+function _parts(f,d){var o={};f.formatToParts(d).forEach(function(p){o[p.type]=p.value;});return o;}
+// fallback only: US Central rule (CDT from 2nd Sun Mar 2 AM to 1st Sun Nov 2 AM)
+function _ruleCT(ms){var d=new Date(ms),y=d.getUTCFullYear();var nth=function(mo,n){var x=new Date(Date.UTC(y,mo,1));var off=(7-x.getUTCDay())%7;return Date.UTC(y,mo,1+off+7*(n-1));};
+  var dstStart=nth(2,2)+8*3600000,dstEnd=nth(10,1)+7*3600000,off=(ms>=dstStart&&ms<dstEnd)?-5:-6;var c=new Date(ms+off*3600000);
+  return {iso:c.toISOString().slice(0,10),h:c.getUTCHours(),m:c.getUTCMinutes()};}
+function ctAt(ms){_fmt();var r=null;
+  if(_fD){try{var a=_parts(_fD,new Date(ms)),b=_parts(_fT,new Date(ms)),iso=a.year+"-"+a.month+"-"+a.day,h=parseInt(b.hour,10)%24,m=parseInt(b.minute,10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)&&h>=0&&h<24&&m>=0&&m<60)r={iso:iso,h:h,m:m};}catch(e){}}
+  return r||_ruleCT(ms);}
+function ctDate(ms){return ctAt(ms).iso;}
+function nowCT(){var c=ctAt(Date.now()),h=c.h,m=c.m;return {iso:c.iso,h:h,m:m,mins:h*60+m,hm:(h<10?"0":"")+h+":"+(m<10?"0":"")+m};}
 function hm12(t){if(!t)return "";var p=t.split(":"),h=+p[0];return ((h%12)||12)+":"+p[1]+(h<12?" AM":" PM");}
 function tmins(t){var p=t.split(":");return (+p[0])*60+(+p[1]);}
 function genericPlan(iso){
@@ -266,6 +273,32 @@ var DB=(function(){try{var r=localStorage.getItem(KEY);if(r){var d=JSON.parse(r)
 if(!DB.meta)DB.meta={};
 if(!DB.v||DB.v<4){DB.v=4;DB.meta.migratedV4=Date.now();}
 var saveOk=true;
+function hasActuals(r){if(!r)return false;var any=function(o){if(!o)return false;for(var k in o)if(o[k])return true;return false;};
+  return num(r.weight)>0||num(r.waist)>0||any(r.eaten)||any(r.marks)||(r.extras&&r.extras.length>0)||r.amStatus==="done"||r.pmStatus==="done"||num(r.amMin)>0||num(r.amBurn)>0||num(r.pmBurn)>0||has(r.bedPain)||has(r.walkPain)||has(r.dayPain)||!!(r.notes&&String(r.notes).trim())||any(r.mealTime)||any(r.mealNote);}
+function mergeDay(dst,src){var out={},k,conflict=false;for(k in dst)out[k]=dst[k];
+  for(k in src){var a=dst[k],b=src[k];
+    if(k==="extras"){var ids={};(a||[]).forEach(function(x){ids[x.id]=1;});out.extras=(a||[]).concat((b||[]).filter(function(x){return !ids[x.id];}));}
+    else if(k==="notes"){var t1=String(a||"").trim(),t2=String(b||"").trim();out.notes=t1&&t2&&t1!==t2?t1+"\n"+t2:(t1||t2);}
+    else if(k==="updatedAt")out.updatedAt=Math.max(num(a),num(b))||undefined;
+    else if(b&&typeof b==="object"&&!Array.isArray(b)){var o={},q;for(q in (a||{}))o[q]=a[q];for(q in b){if(!has(o[q])||o[q]===""||o[q]===false)o[q]=b[q];else if(o[q]!==b[q])conflict=true;}out[k]=o;}
+    else if(!has(a)||a===""){out[k]=b;}
+    else if(has(b)&&b!==""&&a!==b)conflict=true;}
+  return {rec:out,conflict:conflict};}
+function repairKeys(){
+  if(DB.meta.repairV5)return;var today=nowCT().iso,moves=[];
+  Object.keys(DB.days).sort().forEach(function(k){var r=DB.days[k];if(!r||!hasActuals(r))return;var back=addDays(k,-1),ts=num(r.updatedAt)||num(r.createdAt),why=null;
+    if(ts>0){if(ctDate(ts)===back)why="saved "+ctDate(ts)+" CT, before "+k+" began";}
+    else if(k>today)why="future date with no timestamp";
+    if(!why)return;
+    if(!DB.meta.repairBackup)DB.meta.repairBackup={};DB.meta.repairBackup[k]={rec:r,at:Date.now()};
+    var tgt=DB.days[back];
+    if(!tgt||!hasActuals(tgt)){DB.days[back]=tgt?mergeDay(r,tgt).rec:r;delete DB.days[k];moves.push({from:k,to:back,how:"moved",why:why});}
+    else{var m=mergeDay(tgt,r);DB.days[back]=m.rec;delete DB.days[k];moves.push({from:k,to:back,how:m.conflict?"merged (conflicts kept the "+back+" value; original saved in backup)":"merged",why:why});}
+  });
+  DB.meta.repairV5=Date.now();DB.meta.repairLog=moves;if(moves.length)DB.meta.photoMoves=(DB.meta.photoMoves||[]).concat(moves.map(function(x){return {from:x.from,to:x.to};}));
+  try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}
+}
+repairKeys();
 function save(){try{DB.meta.savedAt=Date.now();localStorage.setItem(KEY,JSON.stringify(DB));saveOk=true;}catch(e){saveOk=false;}}
 if(navigator.storage&&navigator.storage.persist){try{navigator.storage.persist();}catch(e){}}
 // ===== settings (personal values live only on this device, or come from a private seed link) =====
@@ -712,7 +745,7 @@ function view(){
   h+='<div id="pg-'+T+'" style="display:flex;flex-direction:column;gap:14px">';
   if(T==="food")h+=pageFood(R,today);else if(T==="train")h+=pageTrain(R,today);else if(T==="progress")h+=pageProgress(R,today);else if(T==="more")h+=pageMore(R,today);else h+=pageToday(R,today);
   h+='</div>';
-  h+='<div class="dim" style="text-align:center;margin-top:4px">Nalam Daily Fuel · v4 · works offline</div>';
+  h+='<div class="dim" style="text-align:center;margin-top:4px">Nalam Daily Fuel · v5 · works offline</div>';
   h+='<nav class="tabs" id="tabs"><div class="tabs-in">'+TABS.map(function(t){var badge=t[0]==="today"&&warnings(R,today,NOW).some(function(w){return w.lvl==="red";})?'<i style="position:absolute;margin-left:22px;width:8px;height:8px;border-radius:4px;background:'+K.red+'"></i>':'';return '<button id="tab-'+t[0]+'" class="'+(T===t[0]?"on":"")+'" data-a="tab" data-v="'+t[0]+'"><span>'+t[1]+badge+'</span>'+t[2]+'</button>';}).join("")+'</div></nav>';
   if(U.settings)h+=settingsSheet();
   if(U.info&&INFO[U.info])h+='<div class="sheetbg" id="sheet" data-a="infoclose"><div class="sheet" data-a="noop"><div class="row sb" style="margin-bottom:8px"><span style="font-weight:800;font-size:17px">'+esc(info(U.info).title)+'</span><button data-a="infoclose" data-x="1" style="background:transparent;border:none;color:'+K.sub+';font-size:24px">×</button></div>'+info(U.info).body.map(function(b){return '<div style="color:'+K.sub+';font-size:14px;line-height:21px;margin-top:8px">'+esc(b)+'</div>';}).join("")+'</div></div>';
@@ -825,7 +858,7 @@ function pageMore(R,today){
   // playbook
   h+='<div class="card"><div class="h2" style="margin-bottom:12px">Playbook</div><div class="row">'+["peanut","half","active","dur","floor","full","extras","gate","mob","carb","omad","weigh","score","save"].concat(remDay?["rem"]:[]).map(function(k){return '<button class="togl" data-a="info" data-k="'+k+'" style="color:'+K.text+'">'+esc(info(k).title)+'</button>';}).join("")+'</div><div class="dim" style="margin-top:12px">All food numbers are estimates from typical values, cooked weights. Targets: 1,650–1,700 cal (walk-run days 1,700–1,800), protein 150–160 g, fat 55–65 g, carbs 100–130 g, fiber 30+ g. Suggestions only; your doctor\'s advice comes first.</div></div>';
   // data
-  h+='<div class="card"><div class="h2" style="margin-bottom:8px">Data</div><div class="dim" style="margin-bottom:10px">'+Object.keys(DB.days).length+' day(s) saved on this phone. Export a backup now and then; Import restores it (on a new phone too). Photos stay on this phone and are not in the backup.</div><div class="row"><button class="btn ghost" data-a="export">Export backup</button><button class="btn ghost" data-a="import">Import backup</button><button class="btn ghost" data-a="resetday" style="color:'+K.red+'">Clear this day</button></div></div>';
+  h+='<div class="card"><div class="h2" style="margin-bottom:8px">Data</div><div class="dim" style="margin-bottom:10px">'+Object.keys(DB.days).length+' day(s) saved on this phone.'+(DB.meta.repairLog&&DB.meta.repairLog.length?' Date fix: '+DB.meta.repairLog.map(function(x){return nice(x.from)+' → '+nice(x.to)+' ('+x.how.split(' ')[0]+')';}).join(', ')+'.':'')+' Export a backup now and then; Import restores it (on a new phone too). Photos stay on this phone and are not in the backup.</div><div class="row"><button class="btn ghost" data-a="export">Export backup</button><button class="btn ghost" data-a="import">Import backup</button><button class="btn ghost" data-a="resetday" style="color:'+K.red+'">Clear this day</button></div></div>';
   h+='<div class="card"><div class="row sb"><span class="h2">⚙ Settings</span><button class="btn ghost" data-a="settings">Open settings</button></div><div class="dim" style="margin-top:8px">Setup code, race, reminder and goal values. Saved on this phone only.</div></div>';
   return h;
 }
@@ -857,7 +890,7 @@ var root=document.getElementById("app");
 function render(){var t=document.createElement("div");t.innerHTML=view();morphKids(root,t);
   if(U.focus){var f=U.focus;U.focus=null;var el=document.getElementById("step-"+f);if(el){var y=el.getBoundingClientRect().top+window.pageYOffset-(document.getElementById("hdr")||{offsetHeight:120}).offsetHeight-10;window.scrollTo(0,Math.max(0,y));}}}
 // ===== actions =====
-function upd(patch){var cur=DB.days[U.sel]||{},nd={},k;for(k in cur)nd[k]=cur[k];for(k in patch)nd[k]=patch[k];nd.updatedAt=Date.now();DB.days[U.sel]=nd;save();}
+function upd(patch){var tdy=nowCT().iso;if(U.sel>tdy&&U.okFuture!==U.sel){if(!confirm("You are on "+nice(U.sel)+", a future day (today is "+nice(tdy)+" in Chicago). Save this entry to "+nice(U.sel)+"?")){U.sel=tdy;render();return;}U.okFuture=U.sel;}var cur=DB.days[U.sel]||{},nd={},k;if(!cur.createdAt)nd.createdAt=Date.now();for(k in cur)nd[k]=cur[k];for(k in patch)nd[k]=patch[k];nd.updatedAt=Date.now();DB.days[U.sel]=nd;save();}
 function stNow(){return day(U.sel);}
 function stamp(){var n=nowCT();return U.sel===n.iso?n.hm:null;}
 function cp(o){var r={};for(var k in o)r[k]=o[k];return r;}
@@ -960,6 +993,9 @@ document.addEventListener("change",function(ev){if(ev.target.dataset&&ev.target.
 // reopened on a new day: jump to today
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){var n=nowCT();if(n.iso!==NOW.iso&&U.sel===NOW.iso)U.sel=n.iso;render();}});
 setInterval(function(){var ae=document.activeElement;if(document.visibilityState==="visible"&&!(ae&&/INPUT|TEXTAREA/.test(ae.nodeName)))render();},60000);
+(function movePhotos(){var mv=DB.meta.photoMoves;if(!mv||!mv.length||!window.indexedDB)return;
+  Promise.all(mv.map(function(x){return phReq("readonly",function(os){return os.index("date").getAll(x.from);}).then(function(list){return Promise.all((list||[]).map(function(r){r.date=x.to;return phPut(r);}));});}))
+  .then(function(){DB.meta.photoMoves=[];save();PH.days={};render();},function(){});})();
 render();
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
 </script>
