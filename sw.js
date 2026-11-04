@@ -1,6 +1,6 @@
-// Nalam Daily Fuel service worker: the page itself is network-first (so a new version applies on the
+// Nalam service worker: the page itself is network-first (so a new version applies on the
 // next open, never a mix of versions); icons and the manifest are cache-first. Works offline.
-const CACHE = "nalam-dash-v7";
+const CACHE = "nalam-dash-v8";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
